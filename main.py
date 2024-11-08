@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from discord.ext import commands
 
-import search
+import search, recursivestring
 
 bot = commands.Bot(command_prefix='h!', self_bot=True)
 
@@ -90,5 +90,15 @@ async def lag(ctx,count: int,channel=None):
         channel = await discord.get_channel(channel)
 
     await _spam(channel,398*"🅰",count)
+
+@bot.command("recurse")
+async def recurse(ctx,recursive_type,*args):
+    if recursive_type=="character":
+        await ctx.message.edit(recursivestring.gen_recursive_string(" ".join(args)).rstrip())
+
+@bot.command()
+async def whitespace(ctx):
+    await ctx.message.delete()
+    await ctx.channel.send("‫"+"\n"*1998+"‫")
 
 bot.run(os.getenv("TOKEN"))
