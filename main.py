@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from discord.ext import commands
 
-import search, recursivestring
+import search, recursivestring, regex
 
 bot = commands.Bot(command_prefix='h!', self_bot=True)
 
@@ -34,6 +34,9 @@ async def status(ctx, *args):
 
 @bot.command()
 async def count(ctx,searchtype,*args):
+    def sort_dict(x):
+        return dict(sorted(x.items(), key=lambda item: item[1]))
+    
     m = await ctx.reply("Loading...")
 
     search_string = " ".join(args)
@@ -48,9 +51,26 @@ async def count(ctx,searchtype,*args):
                                                            args=search.generate_search_arguments(author_id=str(member.id))
                                                            )
             counts[member.name] = member_count
-        
+
+        counts=sort_dict(counts)
+
         response = f"# {search_string if search_string else 'Users'}\n"
         response += "\n".join([f"-`{member}` has sent `{counts[member]}` messages" for member in counts])
+        print(response)
+        await m.edit(response)
+        return
+    elif searchtype=="mentions":
+        counts = {}
+        for member in (await ctx.guild.fetch_members()):
+            member_count = await search.get_messages_count(ctx.guild, search_string, 
+                                                           args=search.generate_search_arguments(mentions=str(member.id))
+                                                           )
+            counts[member.name] = member_count
+
+        counts=sort_dict(counts)
+
+        response = f"# {search_string if search_string else 'Users'}\n"
+        response += "\n".join([f"-`{member}` has been mentioned `{counts[member]}` times" for member in counts])
         print(response)
         await m.edit(response)
         return
@@ -61,6 +81,9 @@ async def count(ctx,searchtype,*args):
                                                            args=search.generate_search_arguments(channel_id=str(channel.id))
                                                            )
             counts[channel.name] = channel_count
+
+        counts=sort_dict(counts)
+
         response = f"# {search_string if search_string else 'Channels'}\n"
         response += "\n".join([f"-`{channel}` has {counts[channel]} messages" for channel in counts])
         print(response)
@@ -100,5 +123,23 @@ async def recurse(ctx,recursive_type,*args):
 async def whitespace(ctx):
     await ctx.message.delete()
     await ctx.channel.send("‫"+"\n"*1998+"‫")
+
+@bot.command()
+async def spoil(ctx, *args):
+    spoiled = "".join([f"||{x}||" for x in regex.findall(r'(.)'," ".join(args))])
+
+    await ctx.message.edit(spoiled)
+
+@bot.command()
+async def archive_channels(ctx):
+    PREFIX = "archived-"
+    channels = await ctx.guild.fetch_channels()
+
+    for channel in channels:
+        new_name = PREFIX+channel.name
+        if not channel.name.startswith(PREFIX):
+            await channel.edit(name=new_name)
+
+    await ctx.reply("Done")
 
 bot.run(os.getenv("TOKEN"))

@@ -3,14 +3,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 async def individual_search(guild,args):
+    url = f"https://discord.com/api/v9/guilds/{guild.id}/messages/search?{args}"
+
+    print(f"Searching at {url}")
+
     while True:
-        url = f"https://discord.com/api/v9/guilds/{guild.id}/messages/search?{args}"
         result = requests.get(url,headers={"authorization":os.getenv("TOKEN")})
 
         if result.status_code == 429:
             print(f"Ratelimited for {result.json()['retry_after']}, retrying")
-            # Discord pretty consistently waits an extra 0.3s
-            await asyncio.sleep(int(result.json()["retry_after"])+0.35)
+            # Discord pretty consistently waits an extra bit
+            await asyncio.sleep(float(result.json()["retry_after"])+0.01)
+        elif result.status_code != 200:
+            print(result)
+            return result.json()
         else:
             return result.json()
 
@@ -26,7 +32,7 @@ async def get_all_results(guild,args):
 
     return(messages)
 
-def generate_search_arguments(content=None,author_id=None,channel_id=None,has=None,limit=25):
+def generate_search_arguments(content=None,author_id=None,channel_id=None,has=None,limit=25,mentions=None):
     args = ""
     if content:
         args += "content="+content+"&"
@@ -37,11 +43,16 @@ def generate_search_arguments(content=None,author_id=None,channel_id=None,has=No
     if channel_id:
         args += "channel_id="+channel_id+"&"
     if has:
-        args += "has"+has+"&"
+        args += "has="+has+"&"
+    if mentions:
+        args += "mentions="+has+"&"
     # print(args)
     return args
 
 async def get_messages_count(guild,search_string,args=""):
+    print(f"Getting message count for {search_string}")
+
     args += generate_search_arguments(content=search_string,limit=1)
     response = (await individual_search(guild,args))
+
     return int(response["total_results"])
