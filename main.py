@@ -132,6 +132,9 @@ async def spoil(ctx, *args):
 
 @bot.command()
 async def archive_channels(ctx):
+    await ctx.reply("U sure? if you are comment out the next line")
+    return
+
     PREFIX = "archived-"
     channels = await ctx.guild.fetch_channels()
 
