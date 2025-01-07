@@ -20,6 +20,8 @@ def node(base,nodes,num):
     
 
 def gen_recursive_string(text):
+    # return
+
     nodes = {}
     base = text.replace("!(count)","")
 

@@ -5,7 +5,7 @@ from discord.ext import commands
 
 import search, recursivestring, regex
 
-bot = commands.Bot(command_prefix='h!', self_bot=True)
+bot = commands.Bot(command_prefix=os.getenv("PREFIX"), self_bot=True)
 
 @bot.command()
 async def ping(ctx):
