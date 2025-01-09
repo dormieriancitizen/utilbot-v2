@@ -1,6 +1,36 @@
 import discord
 from discord.ext import commands
 
+from colorama import Fore, Back, Style
+
+colorama_replacements = {
+    # Foreground colors
+    r"{Fore.Green}": Fore.GREEN,
+    r"{Fore.Blue}": Fore.BLUE,
+    r"{Fore.Red}": Fore.RED,
+    r"{Fore.Yellow}": Fore.YELLOW,
+    r"{Fore.Cyan}": Fore.CYAN,
+    r"{Fore.White}": Fore.WHITE,
+    r"{Fore.Magenta}": Fore.MAGENTA,
+    r"{Fore.Reset}": Fore.RESET,
+    
+    # Background colors
+    r"{Back.Green}": Back.GREEN,
+    r"{Back.Blue}": Back.BLUE,
+    r"{Back.Red}": Back.RED,
+    r"{Back.Yellow}": Back.YELLOW,
+    r"{Back.Cyan}": Back.CYAN,
+    r"{Back.White}": Back.WHITE,
+    r"{Back.Magenta}": Back.MAGENTA,
+    r"{Back.Reset}": Back.RESET,
+    
+    # Styles
+    r"{Style.Bright}": Style.BRIGHT,
+    r"{Style.Dim}": Style.DIM,
+    r"{Style.Normal}": Style.NORMAL,
+    r"{Style.Reset}": Style.RESET_ALL,
+}
+
 class MessagesCommands(commands.Cog):
     """Commands to deal with the sending/recieving/editing of messages"""
     def __init__(self, bot):
@@ -44,6 +74,14 @@ class MessagesCommands(commands.Cog):
         messages = [message async for message in ctx.channel.history(limit=count)]
         for message in messages:
             await message.delete()
+
+    @commands.command(name="colorama")
+    async def colorama_message(self,ctx,*args):
+        colored = " ".join(args)
+        for match, color in colorama_replacements.items():
+            colored = colored.replace(match,color)
+        
+        await ctx.message.edit(f"```ansi\n{colored}```")
 
 async def setup(bot):
     await bot.add_cog(MessagesCommands(bot))

@@ -8,16 +8,6 @@ import search, regex
 bot = commands.Bot(command_prefix=os.getenv("PREFIX"), self_bot=True)
 
 @bot.command()
-async def icon(ctx, member: discord.Member):
-    await ctx.reply(member.avatar)
-
-@bot.command()
-async def status(ctx, *args):
-  activity = discord.Game(name=' '.join(args))
-  await bot.change_presence(status=discord.Status.online, activity=activity)
-  await ctx.message.delete()
-
-@bot.command()
 async def count(ctx,searchtype,*args):
     def sort_dict(x):
         return dict(sorted(x.items(), key=lambda item: item[1]))
