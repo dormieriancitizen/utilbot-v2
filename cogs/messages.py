@@ -1,4 +1,4 @@
-import discord
+import discord, regex
 from discord.ext import commands
 
 from colorama import Fore, Back, Style
@@ -47,16 +47,13 @@ class MessagesCommands(commands.Cog):
     @commands.command()
     async def spam(self,ctx,count: int,*args):
         await ctx.message.delete()
-        await _spam(ctx.channel," ".join(args), count)
+        await self._spam(ctx.channel," ".join(args), count)
 
     @commands.command()
-    async def lag(self,ctx,count: int,channel=None):
-        if channel is None:
-            channel = ctx.channel
-        else:
-            channel = await discord.get_channel(channel)
+    async def lag(self,ctx,count: int):
+        channel = ctx.channel
 
-        await _spam(channel,398*"🅰",count)
+        await self._spam(channel,398*"🅰",count)
     
     @commands.command()
     async def whitespace(self,ctx):
@@ -75,6 +72,17 @@ class MessagesCommands(commands.Cog):
         for message in messages:
             await message.delete()
 
+    def purge_check(self,message) -> bool:
+        if message.author != self.bot.user:
+            return False
+        else:
+            return True
+
+    @commands.command()
+    async def purge(self,ctx,count: int):
+        # adds 1 bc purge deletes itself
+        await ctx.channel.purge(limit=count+1,check=self.purge_check,reason="I have my reasons")
+
     @commands.command(name="colorama")
     async def colorama_message(self,ctx,*args):
         colored = " ".join(args)
@@ -82,6 +90,18 @@ class MessagesCommands(commands.Cog):
             colored = colored.replace(match,color)
         
         await ctx.message.edit(f"```ansi\n{colored}```")
+    
+    @commands.command(name="rainbow")
+    async def rainbow(self,ctx,*args):
+        wheel = [Fore.RED,Fore.MAGENTA,Fore.YELLOW,Fore.GREEN,Fore.BLUE,Fore.GREEN,Fore.YELLOW,Fore.MAGENTA,Fore.RED]
+        # back_wheel = [Back.RED,Back.MAGENTA,Back.YELLOW,Back.GREEN,Back.BLUE,Back.GREEN,Back.YELLOW,Back.MAGENTA,Back.RED]
+
+        out = ""
+        for i, char in enumerate(" ".join(args)):
+            out += wheel[i % len(wheel)] + char
+
+        await ctx.message.edit(f"```ansi\n{out}```")
+        
 
 async def setup(bot):
     await bot.add_cog(MessagesCommands(bot))
