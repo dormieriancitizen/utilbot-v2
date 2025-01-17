@@ -45,6 +45,30 @@ class SearchCommands(commands.Cog):
         print(response)
         await m.edit(response)
 
+    @count.command(name="imager")
+    async def image_count(self,ctx):
+        m = await ctx.reply("Loading...")
+
+        counts = {}
+        for member in (await ctx.guild.fetch_members()):
+            messages = [m async for m in ctx.guild.search(
+                has=["image"],
+                authors=[member],
+                limit=1)]
+            if messages:
+                message_count = messages[0].total_results
+            else:
+                message_count = 0
+
+            counts[member.name] = message_count
+
+        counts=self.sort_dict(counts)
+
+        response = f"# {'Imagers'}\n"
+        response += "\n".join([f"-`{member}` has sent `{counts[member]}` messages" for member in counts])
+        print(response)
+        await m.edit(response)
+
     @count.command(name="message_per_capita")
     async def per_capita_count(self,ctx,*args):
         m = await ctx.reply("Loading...")
