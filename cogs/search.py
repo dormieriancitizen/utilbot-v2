@@ -99,6 +99,7 @@ class SearchCommands(commands.Cog):
 
         response = "# "+f"{search_string}: {total}\n" if search_string else 'Users\n'
         response += "\n".join([f"-`{member}` has sent `{counts[member]}` messages" for member in counts])
+        
         await m.edit(response)
 
     @count.command(name="imagers")
@@ -116,6 +117,7 @@ class SearchCommands(commands.Cog):
 
         response = f"# Images: {total}\n"
         response += "\n".join([f"-`{member.name}` has sent `{counts[member]}` images" for member in counts])
+        
         await m.edit(response)
 
     @count.command(name="messages_per_capita")
@@ -149,30 +151,13 @@ class SearchCommands(commands.Cog):
 
         response = f"# {f'{search_string} per capita' if search_string else 'Message Per Capita'}\n"
         response += "\n".join([f"-`{member}`: `{counts[member]*100}%`" for member in counts])
-        
-        print(response)
-        
+                
         await m.edit(response)
 
     @count.command(name="mentions")
-    async def mentions_count(self,ctx,*args):
+    async def mentions_count(self,ctx):
         m = await ctx.reply("Loading...")
         search_string = ""
-
-        # counts = {}
-        # for member in (await ctx.guild.fetch_members()):
-        #     messages = [m async for m in ctx.guild.search(
-        #         content=search_string,
-        #         mentions=[member],
-        #         limit=1)]
-        #     if messages:
-        #         message_count = messages[0].total_results
-        #     else:
-        #         message_count = 0
-
-        #     counts[member.name] = message_count
-
-        # counts=self.sort_dict(counts)
 
         counts, total = await self._get_counts(
             guild=ctx.message.guild,
@@ -185,7 +170,7 @@ class SearchCommands(commands.Cog):
 
         response = f"# Mentions\n"
         response += "\n".join([f"-`{member.name}` has been mentioned `{counts[member]}` times" for member in counts])
-        print(response)
+
         await m.edit(response)
     
     @count.command(name="channels")
@@ -203,6 +188,7 @@ class SearchCommands(commands.Cog):
 
         response = f"# {search_string}: {total}\n" if search_string else '# Channels\n'
         response += "\n".join([f"-`{channel.name}` has {counts[channel]} messages" for channel in counts])
+
         await m.edit(response)
 
 async def setup(bot):
