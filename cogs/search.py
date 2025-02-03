@@ -1,3 +1,4 @@
+from typing import Any, Callable
 import discord
 from discord.ext import commands
 
@@ -9,6 +10,68 @@ class SearchCommands(commands.Cog):
     
     def sort_dict(self,x):
         return dict(sorted(x.items(), key=lambda item: item[1]))
+
+    async def _get_counts(
+        self,
+        guild: discord.Guild,
+        search_string: str,
+        entities: list[Any],
+        message_transformer: Callable[[discord.Message],Any],
+        search_arg: str | None = None,
+        extra_args: dict[str,Any] = {}
+    ) -> tuple[dict[Any,int],int]:
+        initial_search = [m async for m in guild.search(
+                content=search_string,
+                limit=1)]
+
+        counts: dict[Any,int] = {}
+
+        if not initial_search:
+            total: int = 0
+        else:
+            total = initial_search[0].total_results # type: ignore
+
+        if total > len(entities) * 25:
+            for entity in entities:
+                if search_arg:
+                    search = guild.search(
+                        content=search_string,
+                        limit=1,
+                        **{search_arg: [entity]}, # type: ignore
+                        **extra_args
+                    )
+                else:
+                    search = guild.search(
+                        content=search_string,
+                        limit=1,
+                        **extra_args
+                    )
+
+                messages = [m async for m in search] # type: ignore
+                
+                if messages:
+                    message_count: int = messages[0].total_results # type: ignore
+                else:
+                    message_count = 0
+
+                counts[entity] = message_count
+        else:
+            # More efficient to go through a raw search
+            if total > 0:
+                async for message in guild.search(content=search_string,limit=None):
+                    entity = message_transformer(message)
+                    
+                    if entity in counts:
+                        counts[entity] += 1
+                    else:
+                        counts[entity] = 1
+
+            for entity in entities:
+                if entity not in counts:
+                    counts[entity] = 0
+
+        counts=self.sort_dict(counts)
+        return counts, total
 
     @commands.group()
     async def count(self,ctx):
@@ -24,75 +87,34 @@ class SearchCommands(commands.Cog):
     async def user_count(self,ctx,*args):
         search_string = " ".join(args)
         m = await ctx.reply("Loading...")
-
-        counts = {}
-
-        members = await ctx.guild.fetch_members()
-
-        initial_search = [m async for m in ctx.guild.search(
-                content=search_string,
-                limit=1)]
-
-        if not initial_search:
-            total: int = 0
-        else:
-            total = initial_search[0].total_results
-
-        if total > len(members) * 25:
-            for member in members:
-                messages = [m async for m in ctx.guild.search(
-                    content=search_string,
-                    authors=[member],
-                    limit=1)]
-                if messages:
-                    message_count = messages[0].total_results
-                else:
-                    message_count = 0
-
-                counts[member.name] = message_count
-        else:
-            # More efficient to go through a raw search
-            if total > 0:
-                async for message in ctx.guild.search(content=search_string,limit=None):
-                    if message.author in counts:
-                        counts[message.author] += 1
-                    else:
-                        counts[message.author] = 1
-
-            for member in members:
-                if member not in counts:
-                    counts[member] = 0
-
-
-        counts=self.sort_dict(counts)
+        
+        counts, total = await self._get_counts(
+            guild=ctx.message.guild,
+            search_string=search_string,
+            entities=(await ctx.guild.fetch_members()),
+            message_transformer=lambda message: message.author,
+            search_arg="authors",
+        )
 
         response = "# "+f"{search_string}: {total}\n" if search_string else 'Users\n'
         response += "\n".join([f"-`{member}` has sent `{counts[member]}` messages" for member in counts])
-        print(response)
         await m.edit(response)
 
     @count.command(name="imager")
     async def image_count(self,ctx):
         m = await ctx.reply("Loading...")
 
-        counts = {}
-        for member in (await ctx.guild.fetch_members()):
-            messages = [m async for m in ctx.guild.search(
-                has=["image"],
-                authors=[member],
-                limit=1)]
-            if messages:
-                message_count = messages[0].total_results
-            else:
-                message_count = 0
+        counts, total = await self._get_counts(
+            guild=ctx.message.guild,
+            search_string="",
+            entities=(await ctx.guild.fetch_members()),
+            message_transformer=lambda message: message.author,
+            search_arg="authors",
+            extra_args={"has": ["image"]}
+        )
 
-            counts[member.name] = message_count
-
-        counts=self.sort_dict(counts)
-
-        response = f"# {'Imagers'}\n"
-        response += "\n".join([f"-`{member}` has sent `{counts[member]}` messages" for member in counts])
-        print(response)
+        response = f"# Images: {total}\n"
+        response += "\n".join([f"-`{member.name}` has sent `{counts[member]}` images" for member in counts])
         await m.edit(response)
 
     @count.command(name="message_per_capita")
