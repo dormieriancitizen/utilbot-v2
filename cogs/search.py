@@ -26,21 +26,47 @@ class SearchCommands(commands.Cog):
         m = await ctx.reply("Loading...")
 
         counts = {}
-        for member in (await ctx.guild.fetch_members()):
-            messages = [m async for m in ctx.guild.search(
-                content=search_string,
-                authors=[member],
-                limit=1)]
-            if messages:
-                message_count = messages[0].total_results
-            else:
-                message_count = 0
 
-            counts[member.name] = message_count
+        members = await ctx.guild.fetch_members()
+
+        initial_search = [m async for m in ctx.guild.search(
+                content=search_string,
+                limit=1)]
+
+        if not initial_search:
+            total: int = 0
+        else:
+            total = initial_search[0].total_results
+
+        if total > len(members) * 25:
+            for member in members:
+                messages = [m async for m in ctx.guild.search(
+                    content=search_string,
+                    authors=[member],
+                    limit=1)]
+                if messages:
+                    message_count = messages[0].total_results
+                else:
+                    message_count = 0
+
+                counts[member.name] = message_count
+        else:
+            # More efficient to go through a raw search
+            if total > 0:
+                async for message in ctx.guild.search(content=search_string,limit=None):
+                    if message.author in counts:
+                        counts[message.author] += 1
+                    else:
+                        counts[message.author] = 1
+
+            for member in members:
+                if member not in counts:
+                    counts[member] = 0
+
 
         counts=self.sort_dict(counts)
 
-        response = f"# {search_string if search_string else 'Users'}\n"
+        response = "# "+f"{search_string}: {total}\n" if search_string else 'Users\n'
         response += "\n".join([f"-`{member}` has sent `{counts[member]}` messages" for member in counts])
         print(response)
         await m.edit(response)

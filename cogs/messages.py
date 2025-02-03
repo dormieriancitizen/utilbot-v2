@@ -93,12 +93,12 @@ class MessagesCommands(commands.Cog):
     
     @commands.command(name="rainbow")
     async def rainbow(self,ctx,*args):
-        wheel = [Fore.RED,Fore.MAGENTA,Fore.YELLOW,Fore.GREEN,Fore.BLUE,Fore.GREEN,Fore.YELLOW,Fore.MAGENTA,Fore.RED]
+        color_wheel = [Fore.RED,Fore.MAGENTA,Fore.YELLOW,Fore.GREEN,Fore.BLUE,Fore.GREEN,Fore.YELLOW,Fore.MAGENTA,Fore.RED]
         # back_wheel = [Back.RED,Back.MAGENTA,Back.YELLOW,Back.GREEN,Back.BLUE,Back.GREEN,Back.YELLOW,Back.MAGENTA,Back.RED]
 
         out = ""
         for i, char in enumerate(" ".join(args)):
-            out += wheel[i % len(wheel)] + char
+            out += color_wheel[i % len(color_wheel)] + char
 
         await ctx.message.edit(f"```ansi\n{out}```")
         

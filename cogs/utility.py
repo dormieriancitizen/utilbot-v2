@@ -16,7 +16,7 @@ class UtilityCommands(commands.Cog):
         await ctx.reply(f"Waited {time} seconds")
 
     @commands.command()
-    async def icon(self,ctx, member: discord.Member):
+    async def icon(self,ctx, member: discord.Member):        
         await ctx.reply(member.avatar)
 
     @commands.command()
@@ -24,6 +24,14 @@ class UtilityCommands(commands.Cog):
         activity = discord.Game(name=' '.join(args))
         await self.bot.change_presence(status=discord.Status.online, activity=activity)
         await ctx.message.delete()
+
+    @commands.command()
+    async def everyone(self,ctx):
+      buffer = ""
+      for member in ctx.message.guild.members:
+        buffer = buffer + member.mention
+
+      await ctx.message.edit(buffer)
 
 async def setup(bot):
     await bot.add_cog(UtilityCommands(bot))
