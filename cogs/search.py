@@ -87,7 +87,7 @@ class SearchCommands(commands.Cog):
     async def user_count(self,ctx,*args):
         search_string = " ".join(args)
         m = await ctx.reply("Loading...")
-        
+
         counts, total = await self._get_counts(
             guild=ctx.message.guild,
             search_string=search_string,
@@ -183,25 +183,17 @@ class SearchCommands(commands.Cog):
         m = await ctx.reply("Loading...")
         search_string = " ".join(args)
 
-        counts = {}
-        for channel in ctx.guild.text_channels:
-            messages = [m async for m in channel.search(
-                content=search_string,
-                limit=1)]
-            if messages:
-                message_count = messages[0].total_results
-            else:
-                message_count = 0
+        counts, total = await self._get_counts(
+            guild=ctx.message.guild,
+            search_string=search_string,
+            entities=ctx.guild.text_channels,
+            message_transformer=lambda message: message.channel,
+            search_arg="channels",
+        )
 
-            counts[channel] = message_count
-
-        counts=self.sort_dict(counts)
-
-        response = f"# {search_string if search_string else 'Channels'}\n"
-        response += "\n".join([f"-`{channel}` has {counts[channel]} messages" for channel in counts])
-        print(response)
+        response = f"# {search_string}: {total}\n" if search_string else '# Channels\n'
+        response += "\n".join([f"-`{channel.name}` has {counts[channel]} messages" for channel in counts])
         await m.edit(response)
-        return
 
 async def setup(bot):
     await bot.add_cog(SearchCommands(bot))    
