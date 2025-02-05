@@ -18,7 +18,7 @@ class SearchCommands(commands.Cog):
         entities: list[Any],
         message_transformer: Callable[[discord.Message],Any],
         search_arg: str | None = None,
-        no_raw=False,
+        no_raw: bool = False,
         extra_args: dict[str,Any] = {},
     ) -> tuple[dict[Any,int],int]:
         initial_search = [m async for m in guild.search(
@@ -38,7 +38,7 @@ class SearchCommands(commands.Cog):
                     search = guild.search(
                         content=search_string,
                         limit=1,
-                        **{search_arg: [entity]}, # type: ignore
+                        **{search_arg: [entity]}, 
                         **extra_args
                     )
                 else:
@@ -48,7 +48,7 @@ class SearchCommands(commands.Cog):
                         **extra_args
                     )
 
-                messages = [m async for m in search] # type: ignore
+                messages = [m async for m in search]
                 
                 if messages:
                     message_count: int = messages[0].total_results # type: ignore
