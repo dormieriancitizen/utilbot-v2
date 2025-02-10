@@ -11,21 +11,21 @@ bot = commands.Bot(command_prefix=str(os.getenv("PREFIX")), self_bot=True)
 # async def recurse(ctx,recursive_type,*args):
     # if recursive_type=="character":
         # await ctx.message.edit(recursivestring.gen_recursive_string(" ".join(args)).rstrip())
-
-@bot.command()
-async def archive_channels(ctx):
-    await ctx.reply("U sure? if you are comment out the next line")
-    return
-
-    PREFIX = "archived-"
-    channels = await ctx.guild.fetch_channels()
-
-    for channel in channels:
-        new_name = PREFIX+channel.name
-        if not channel.name.startswith(PREFIX):
-            await channel.edit(name=new_name)
-
-    await ctx.reply("Done")
+# 
+# @bot.command()
+# async def archive_channels(ctx):
+    # await ctx.reply("U sure? if you are comment out the next line")
+    # return
+# 
+    # PREFIX = "archived-"
+    # channels = await ctx.guild.fetch_channels()
+# 
+    # for channel in channels:
+        # new_name = PREFIX+channel.name
+        # if not channel.name.startswith(PREFIX):
+            # await channel.edit(name=new_name)
+# 
+    # await ctx.reply("Done")
 
 @bot.event
 async def setup_hook():

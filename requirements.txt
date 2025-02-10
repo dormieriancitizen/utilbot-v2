@@ -6,7 +6,7 @@ certifi==2024.12.14
 charset-normalizer==3.4.1
 colorama==0.4.6
 discord-protos==0.0.2
-discord.py-self==2.0.0
+discord.py-self @ git+https://github.com/dolfies/discord.py-self
 frozenlist==1.5.0
 idna==3.10
 multidict==6.1.0

@@ -1,5 +1,6 @@
 # Use an official Python runtime as the base image
 FROM python:3-alpine
+RUN apk add --no-cache git
 
 # Set the working directory in the container
 WORKDIR /app

@@ -11,6 +11,9 @@ class SearchCommands(commands.Cog):
     def sort_dict(self,x):
         return dict(sorted(x.items(), key=lambda item: item[1]))
 
+    def slice_string(self, s, size=2000):
+        return [s[i:i+size] for i in range(0, len(s), size)]
+
     async def _get_counts(
         self,
         guild: discord.Guild,
@@ -189,7 +192,15 @@ class SearchCommands(commands.Cog):
         response = f"# {search_string}: {total}\n" if search_string else '# Channels\n'
         response += "\n".join([f"-`{channel.name}` has {counts[channel]} messages" for channel in counts])
 
-        await m.edit(response)
+        if len(response) < 2000:
+            await m.edit(response)
+        else:
+            print(response)
+            responses = self.slice_string(response)
+            
+            for response in responses:
+                await m.channel.send(response)
+                
 
 async def setup(bot):
     await bot.add_cog(SearchCommands(bot))    
