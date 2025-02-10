@@ -1,0 +1,8 @@
+name: utilbot
+services:
+    utilbot:
+        container_name: utilbot
+        build: .
+        restart: unless-stopped
+        env_file:
+         - .env
