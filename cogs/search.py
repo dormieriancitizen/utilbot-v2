@@ -82,7 +82,7 @@ class SearchCommands(commands.Cog):
         if ctx.subcommand_passed is None:
             m = await ctx.reply("Loading...")
 
-            message: discord.Message = [m async for m in ctx.guild.search(limit=1)][0]
+            message: discord.Message = [m async for m in ctx.channel.search(limit=1)][0]
             await m.edit(f"{message.total_results} messages")
         elif ctx.invoked_subcommand is None:
             await ctx.reply(f"Searchtype {ctx.subcommand_passed} does not exist")
@@ -195,7 +195,6 @@ class SearchCommands(commands.Cog):
         if len(response) < 2000:
             await m.edit(response)
         else:
-            print(response)
             responses = self.slice_string(response)
             
             for response in responses:
