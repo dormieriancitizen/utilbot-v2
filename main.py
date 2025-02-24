@@ -34,5 +34,10 @@ async def setup_hook():
             await bot.load_extension(f'cogs.{filename[:-3]}')
             print(f"Loaded Cog: {filename[:-3]}")
 
+    for filename in os.listdir('./dropins'):
+        if filename.endswith('.py'):
+            await bot.load_extension(f'dropins.{filename[:-3]}')
+            print(f"Loaded Dropin: {filename[:-3]}")
+
 if __name__=="__main__":
     bot.run(str(os.getenv("TOKEN")))

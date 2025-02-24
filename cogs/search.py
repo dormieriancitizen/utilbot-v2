@@ -26,6 +26,7 @@ class SearchCommands(commands.Cog):
     ) -> tuple[dict[Any,int],int]:
         initial_search = [m async for m in guild.search(
                 content=search_string,
+                **extra_args,
                 limit=1)]
 
         counts: dict[Any,int] = {}
@@ -101,6 +102,24 @@ class SearchCommands(commands.Cog):
         )
 
         response = "# "+f"{search_string}: {total}\n" if search_string else 'Users\n'
+        response += "\n".join([f"-`{member}` has sent `{counts[member]}` messages" for member in counts])
+        
+        await m.edit(response)
+    
+    @count.command(name="users_in_channel")
+    async def channel_user_count(self,ctx,channel: discord.TextChannel):
+        m = await ctx.reply("Loading...")
+
+        counts, total = await self._get_counts(
+            guild=ctx.message.guild,
+            search_string="",
+            entities=(await ctx.guild.fetch_members()),
+            message_transformer=lambda message: message.author,
+            search_arg="authors",
+            extra_args={"channels": [channel]}
+        )
+
+        response = "# "+f"{channel.name}: {total}\n"
         response += "\n".join([f"-`{member}` has sent `{counts[member]}` messages" for member in counts])
         
         await m.edit(response)

@@ -27,11 +27,16 @@ class UtilityCommands(commands.Cog):
 
     @commands.command()
     async def everyone(self,ctx):
-      buffer = ""
-      for member in ctx.message.guild.members:
-        buffer = buffer + member.mention
+        buffer = ""
+        for member in ctx.message.guild.members:
+            buffer = buffer + member.mention
 
-      await ctx.message.edit(buffer)
+        await ctx.message.edit(buffer)
+
+    @commands.command()
+    async def allchannelsend(self,ctx,content):
+        for channel in ctx.message.guild.text_channels:
+            await channel.send(content)
 
 async def setup(bot):
     await bot.add_cog(UtilityCommands(bot))
