@@ -90,7 +90,11 @@ class MessagesCommands(commands.Cog):
             colored = colored.replace(match,color)
         
         await ctx.message.edit(f"```ansi\n{colored}```")
-    
+
+    @commands.command(name="ghostping")
+    async def ghostping(self,ctx,*args):
+        await ctx.message.delete()
+
     @commands.command(name="rainbow")
     async def rainbow(self,ctx,*args):
         color_wheel = [Fore.RED,Fore.MAGENTA,Fore.YELLOW,Fore.GREEN,Fore.BLUE,Fore.GREEN,Fore.YELLOW,Fore.MAGENTA,Fore.RED]
