@@ -36,7 +36,10 @@ class UtilityCommands(commands.Cog):
     @commands.command()
     async def allchannelsend(self,ctx,content):
         for channel in ctx.message.guild.text_channels:
-            await channel.send(content)
+            try:
+                await channel.send(content)
+            except:
+                pass
 
 async def setup(bot):
     await bot.add_cog(UtilityCommands(bot))

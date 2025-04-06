@@ -7,29 +7,37 @@ class MimicCommands(commands.Cog):
         self.bot = bot
         self._last_member = None
 
-    @commands.command()
-    async def mimic(self,ctx,target: discord.Member,*args):
-        message = " ".join(args)
-
-        wooks = await ctx.channel.webhooks()
+    async def _sayas(self, channel, avatar_url, username, message):
+        wooks = await channel.webhooks()
 
         created_webhook = False
         if wooks:
             webhook = wooks[0]
         else:
-            webhook = await ctx.channel.create_webhook(name="empheral",reason="Empheral webhook")
+            webhook = await channel.create_webhook(name="ephemeral",reason="ephemeral webhook")
             created_webhook = True
-
-        await ctx.message.delete()
 
         await webhook.send(
             content=message,
-            avatar_url=target.avatar,
-            username=target.display_name
+            avatar_url=avatar_url,
+            username=username
         )
 
         if created_webhook:
             await webhook.delete(reason="Empheral webhook for mimicry")
+
+    @commands.command()
+    async def mimic(self, ctx, target: discord.Member,*args):
+        message = " ".join(args)
+        await ctx.message.delete()
+
+        await self._sayas(ctx.channel, target.avatar, target.display_name, message)
+
+    @commands.command()
+    async def persona(self, ctx, avatar_url: str, username: str, message: str):
+        await ctx.message.delete()
+
+        await self._sayas(ctx.channel, avatar_url, username, message)
 
 async def setup(bot):
     await bot.add_cog(MimicCommands(bot))
