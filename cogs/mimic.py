@@ -8,14 +8,17 @@ class MimicCommands(commands.Cog):
         self._last_member = None
 
     async def _sayas(self, channel, avatar_url, username, message):
-        wooks = await channel.webhooks()
+        if isinstance(channel,discord.TextChannel):
+            webhooks = await channel.webhooks()
 
-        created_webhook = False
-        if wooks:
-            webhook = wooks[0]
+            created_webhook = False
+            if webhooks:
+                webhook = webhooks[0]
+            else:
+                webhook = await channel.create_webhook(name="ephemeral",reason="ephemeral webhook")
+                created_webhook = True
         else:
-            webhook = await channel.create_webhook(name="ephemeral",reason="ephemeral webhook")
-            created_webhook = True
+            return
 
         await webhook.send(
             content=message,

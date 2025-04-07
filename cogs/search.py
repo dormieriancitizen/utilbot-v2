@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 import discord
 from discord.ext import commands
 
@@ -52,15 +52,18 @@ class SearchCommands(commands.Cog):
                         **extra_args
                     )
 
-                messages = [m async for m in search]
-                
-                if messages:
-                    message_count: int = messages[0].total_results # type: ignore
-                else:
-                    message_count = 0
+                try:
+                    messages = [m async for m in search]
+                    
+                    if messages:
+                        message_count: int = messages[0].total_results # type: ignore
+                    else:
+                        message_count = 0
 
-                if message_count:
-                    counts[entity] = message_count
+                    if message_count:
+                        counts[entity] = message_count
+                except discord.errors.Forbidden:
+                    counts[entity] = -1
         else:
             # More efficient to go through a raw search
             if total > 0:
@@ -113,6 +116,32 @@ class SearchCommands(commands.Cog):
             for response in responses:
                 await m.channel.send(response)
     
+    @count.command(name="compare")
+    async def comparison_count(self,ctx,*queries):
+        m = await ctx.reply("Loading...")
+
+        counts = {} 
+        for query in queries:
+            search: list[discord.Message] = [m async for m in ctx.guild.search(
+                content=query,
+                limit=1)]
+
+            if search:
+                counts[query] = search[0].total_results
+            else:
+                counts[query] = 0
+
+        response = "# Comparisons \n"
+        response += "\n".join([f"-`{query}`: `{counts[query]}` messages" for query in counts])
+
+        if len(response) < 2000:
+            await m.edit(response)
+        else:
+            responses = self.slice_string(response)
+            
+            for response in responses:
+                await m.channel.send(response)
+
     @count.command(name="users_in_channel")
     async def channel_user_count(self,ctx,channel: discord.TextChannel):
         m = await ctx.reply("Loading...")
