@@ -8,3 +8,4 @@ services:
           - .env
         volumes:
           - ./dropins:/app/dropins
+          - ./cache:/app/cache

@@ -1,5 +1,9 @@
 from typing import Any, Callable, Iterable
 import discord
+import json
+import asyncio
+from pathlib import Path
+from datetime import datetime
 from discord.ext import commands
 
 class SearchCommands(commands.Cog):
@@ -8,7 +12,7 @@ class SearchCommands(commands.Cog):
         self.bot = bot
         self._last_member = None
     
-    def sort_dict(self,x):
+    def sort_dict(self,x) -> dict[Any,Any]:
         return dict(sorted(x.items(), key=lambda item: item[1]))
 
     def slice_string(self, s, size=2000):
@@ -189,38 +193,87 @@ class SearchCommands(commands.Cog):
             
             for response in responses:
                 await m.channel.send(response)
+    
+    @count.command(name="build_cache")
+    async def build_cache(self,ctx):
+        def check(m: discord.Message):
+            if m.channel.id != ctx.channel.id:
+                return False
 
-    @count.command(name="messages_per_capita")
+            if m.author.id != ctx.message.author.id:
+                return False
+
+            if m.content.lower() in ["y","yes","yeah","yea","yay"]:
+                return True
+
+            return False
+
+        if not ctx.guild:
+            await ctx.reply("This command can't be run outside a guild!")
+            return
+
+        cache_path = Path(f"cache/message_count_cache.{ctx.guild.id}")
+        if cache_path.exists():
+            last_cache_str = datetime.fromtimestamp(cache_path.lstat().st_mtime).strftime("%m/%d/%Y")
+            await ctx.reply(f"Last cache was {last_cache_str}. Continue? Y/n")
+
+            try:
+                await self.bot.wait_for('message', check = check, timeout = 60.0)
+            except asyncio.TimeoutError:
+                await ctx.reply("Not contiuing")
+                return
+
+            await ctx.reply('Continuing')
+
+        counts: dict[discord.Member,int] = {}
+        counts, total = await self._get_counts(
+            guild=ctx.message.guild,
+            search_string="",
+            entities=(await ctx.guild.fetch_members()),
+            message_transformer=lambda message: message.author,
+            search_arg="authors",
+        )
+
+        id_counts: dict[int, int] = {member.id: count for member, count in counts.items()}
+
+        with open(cache_path,"w") as cache_file:
+            json.dump(id_counts, cache_file)
+        
+        await ctx.reply(f"Built cache of {len(id_counts)} members")
+
+    @count.command(name="per_capita")
     async def per_capita_count(self,ctx,*args):
         m = await ctx.reply("Loading...")
         search_string = " ".join(args)
 
-        counts = {}
-        for member in (await ctx.guild.fetch_members()):
-            content_messages = [m async for m in ctx.guild.search(
-                content=search_string,
-                authors=[member],
-                limit=1)]
-            
-            if content_messages:
-                content_message_count = content_messages[0].total_results
+        cache_path = Path(f"cache/message_count_cache.{ctx.guild.id}")
+        if not cache_path.exists():
+            await ctx.reply("No cache found! Build the cache with `build_cache` and try again")
+            return
+        
+        with open(cache_path, "r") as cache_file:
+            total_counts = json.load(cache_file)
+        # await ctx.reply(f"Counts: {total_counts}")
 
-                max_messages = [m async for m in ctx.guild.search(
-                    authors=[member],
-                    limit=1)]
+        counts, total = await self._get_counts(
+            guild=ctx.message.guild,
+            search_string=search_string,
+            entities=(await ctx.guild.fetch_members()),
+            message_transformer=lambda message: message.author,
+            search_arg="authors",
+        )
 
-                max_messages_count = max_messages[0].total_results
-
-                message_percent = (content_message_count / max_messages_count)
+        rates = {}
+        for member, count in counts.items():
+            if str(member.id) in total_counts:
+                rates[member] = count / total_counts[str(member.id)]
             else:
-                message_percent = 0
+                await ctx.reply(f"Member {member} not in cache")
 
-            counts[member] = message_percent
-
-        counts=self.sort_dict(counts)
+        rates = self.sort_dict(rates)
 
         response = f"# {f'{search_string} per capita' if search_string else 'Message Per Capita'}\n"
-        response += "\n".join([f"-`{member}`: `{counts[member]*100}%`" for member in counts])
+        response += "\n".join([f"-`{member}`: `{rates[member]*100}%`" for member in rates])
                 
         if len(response) < 2000:
             await m.edit(response)
