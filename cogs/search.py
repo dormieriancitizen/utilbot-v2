@@ -85,7 +85,7 @@ class SearchCommands(commands.Cog):
 
         counts=self.sort_dict(counts)
         return counts, total
-
+    
     @commands.group()
     async def count(self,ctx):
         if ctx.subcommand_passed is None:
@@ -95,104 +95,6 @@ class SearchCommands(commands.Cog):
             await m.edit(f"{message.total_results} messages")
         elif ctx.invoked_subcommand is None:
             await ctx.reply(f"Searchtype {ctx.subcommand_passed} does not exist")
-
-    @count.command(name="users")
-    async def user_count(self,ctx,*args):
-        search_string = " ".join(args)
-        m = await ctx.reply("Loading...")
-
-        counts, total = await self._get_counts(
-            guild=ctx.message.guild,
-            search_string=search_string,
-            entities=(await ctx.guild.fetch_members()),
-            message_transformer=lambda message: message.author,
-            search_arg="authors",
-        )
-
-        response = "# "+f"{search_string}: {total}\n" if search_string else 'Users\n'
-        response += "\n".join([f"-`{member}` has sent `{counts[member]}` messages" for member in counts])
-        
-        if len(response) < 2000:
-            await m.edit(response)
-        else:
-            responses = self.slice_string(response)
-            
-            for response in responses:
-                await m.channel.send(response)
-    
-    @count.command(name="compare")
-    async def comparison_count(self,ctx,*queries):
-        m = await ctx.reply("Loading...")
-
-        counts = {} 
-        for query in queries:
-            search: list[discord.Message] = [m async for m in ctx.guild.search(
-                content=query,
-                limit=1)]
-
-            if search:
-                counts[query] = search[0].total_results
-            else:
-                counts[query] = 0
-
-        response = "# Comparisons \n"
-        response += "\n".join([f"-`{query}`: `{counts[query]}` messages" for query in counts])
-
-        if len(response) < 2000:
-            await m.edit(response)
-        else:
-            responses = self.slice_string(response)
-            
-            for response in responses:
-                await m.channel.send(response)
-
-    @count.command(name="users_in_channel")
-    async def channel_user_count(self,ctx,channel: discord.TextChannel):
-        m = await ctx.reply("Loading...")
-
-        counts, total = await self._get_counts(
-            guild=ctx.message.guild,
-            search_string="",
-            entities=(await ctx.guild.fetch_members()),
-            message_transformer=lambda message: message.author,
-            search_arg="authors",
-            extra_args={"channels": [channel]}
-        )
-
-        response = "# "+f"{channel.name}: {total}\n"
-        response += "\n".join([f"-`{member}` has sent `{counts[member]}` messages" for member in counts])
-        
-        if len(response) < 2000:
-            await m.edit(response)
-        else:
-            responses = self.slice_string(response)
-            
-            for response in responses:
-                await m.channel.send(response)
-
-    @count.command(name="imagers")
-    async def image_count(self,ctx):
-        m = await ctx.reply("Loading...")
-
-        counts, total = await self._get_counts(
-            guild=ctx.message.guild,
-            search_string="",
-            entities=(await ctx.guild.fetch_members()),
-            message_transformer=lambda message: message.author,
-            search_arg="authors",
-            extra_args={"has": ["image"]}
-        )
-
-        response = f"# Images: {total}\n"
-        response += "\n".join([f"-`{member.name}` has sent `{counts[member]}` images" for member in counts])
-        
-        if len(response) < 2000:
-            await m.edit(response)
-        else:
-            responses = self.slice_string(response)
-            
-            for response in responses:
-                await m.channel.send(response)
     
     @count.command(name="build_cache")
     async def build_cache(self,ctx):
@@ -240,9 +142,112 @@ class SearchCommands(commands.Cog):
             json.dump(id_counts, cache_file)
         
         await ctx.reply(f"Built cache of {len(id_counts)} members")
+    
+
+    @count.command(name="users")
+    async def user_count(self,ctx,*args):
+        search_string = " ".join(args)
+        m = await ctx.reply("Loading...")
+
+        counts, total = await self._get_counts(
+            guild=ctx.message.guild,
+            search_string=search_string,
+            entities=(await ctx.guild.fetch_members()),
+            message_transformer=lambda message: message.author,
+            search_arg="authors",
+        )
+
+        response = "# "+f"{search_string}: {total}\n" if search_string else 'Users\n'
+        response += "\n".join([f" - `{member}` has sent `{counts[member]}` messages" for member in counts])
+        
+        if len(response) < 2000:
+            await m.edit(response)
+        else:
+            responses = self.slice_string(response)
+            
+            for response in responses:
+                await m.channel.send(response)
+    
+    @count.command(name="compare")
+    async def comparison_count(self,ctx,*queries):
+        m = await ctx.reply("Loading...")
+
+        counts = {} 
+        for query in queries:
+            search: list[discord.Message] = [m async for m in ctx.guild.search(
+                content=query,
+                limit=1)]
+
+            if search:
+                counts[query] = search[0].total_results
+            else:
+                counts[query] = 0
+
+        response = "# Comparisons \n"
+        response += "\n".join([f" - `{query}`: `{counts[query]}` messages" for query in counts])
+
+        if len(response) < 2000:
+            await m.edit(response)
+        else:
+            responses = self.slice_string(response)
+            
+            for response in responses:
+                await m.channel.send(response)
+
+    @count.command(name="users_in_channel")
+    async def channel_user_count(self,ctx,channel: discord.TextChannel):
+        m = await ctx.reply("Loading...")
+
+        counts, total = await self._get_counts(
+            guild=ctx.message.guild,
+            search_string="",
+            entities=(await ctx.guild.fetch_members()),
+            message_transformer=lambda message: message.author,
+            search_arg="authors",
+            extra_args={"channels": [channel]}
+        )
+
+        response = "# "+f"{channel.name}: {total}\n"
+        response += "\n".join([f" - `{member}` has sent `{counts[member]}` messages" for member in counts])
+        
+        if len(response) < 2000:
+            await m.edit(response)
+        else:
+            responses = self.slice_string(response)
+            
+            for response in responses:
+                await m.channel.send(response)
+
+    @count.command(name="imagers")
+    async def image_count(self,ctx):
+        m = await ctx.reply("Loading...")
+
+        counts, total = await self._get_counts(
+            guild=ctx.message.guild,
+            search_string="",
+            entities=(await ctx.guild.fetch_members()),
+            message_transformer=lambda message: message.author,
+            search_arg="authors",
+            extra_args={"has": ["image"]}
+        )
+
+    
+        response = f"# Images: {total}\n"
+        response += "\n".join([f" - `{member.name}` has sent `{counts[member]}` images" for member in counts])
+        
+        if len(response) < 2000:
+            await m.edit(response)
+        else:
+            responses = self.slice_string(response)
+            
+            for response in responses:
+                await m.channel.send(response)
 
     @count.command(name="per_capita")
     async def per_capita_count(self,ctx,*args):
+        def round_to_sig_figs(number,figs=3):
+            return '{:g}'.format(float('{:.{p}g}'.format(number,p=figs)))
+    
         m = await ctx.reply("Loading...")
         search_string = " ".join(args)
 
@@ -268,12 +273,13 @@ class SearchCommands(commands.Cog):
             if str(member.id) in total_counts:
                 rates[member] = count / total_counts[str(member.id)]
             else:
-                await ctx.reply(f"Member {member} not in cache")
+                # await ctx.reply(f"Member {member} not in cache")
+                pass
 
         rates = self.sort_dict(rates)
 
         response = f"# {f'{search_string} per capita' if search_string else 'Message Per Capita'}\n"
-        response += "\n".join([f"-`{member}`: `{rates[member]*100}%`" for member in rates])
+        response += "\n".join([f" - `{member}`: {round_to_sig_figs(rates[member]*100,4)}%" for member in rates])
                 
         if len(response) < 2000:
             await m.edit(response)
@@ -298,7 +304,7 @@ class SearchCommands(commands.Cog):
         )
 
         response = f"# Mentions\n"
-        response += "\n".join([f"-`{member.name}` has been mentioned `{counts[member]}` times" for member in counts])
+        response += "\n".join([f" - `{member.name}` has been mentioned `{counts[member]}` times" for member in counts])
 
         if len(response) < 2000:
             await m.edit(response)
@@ -322,7 +328,7 @@ class SearchCommands(commands.Cog):
         )
 
         response = f"# {search_string}: {total}\n" if search_string else '# Channels\n'
-        response += "\n".join([f"-`{channel.name}` has {counts[channel]} messages" for channel in counts])
+        response += "\n".join([f" - `{channel.name}` has {counts[channel]} messages" for channel in counts])
 
         if len(response) < 2000:
             await m.edit(response)
