@@ -279,7 +279,7 @@ class SearchCommands(commands.Cog):
         rates = self.sort_dict(rates)
 
         response = f"# {f'{search_string} per capita' if search_string else 'Message Per Capita'}\n"
-        response += "\n".join([f" - `{member}`: {round_to_sig_figs(rates[member]*100,4)}%" for member in rates])
+        response += "\n".join([f" - `{member}`: **{round_to_sig_figs(rates[member]*100,4)}%**  ->  {counts[member]}" for member in rates])
                 
         if len(response) < 2000:
             await m.edit(response)
