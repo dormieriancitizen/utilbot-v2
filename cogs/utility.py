@@ -1,4 +1,5 @@
 import discord, asyncio
+from pathlib import Path
 from discord.ext import commands
 
 class UtilityCommands(commands.Cog):
@@ -40,6 +41,11 @@ class UtilityCommands(commands.Cog):
                 await channel.send(content)
             except:
                 pass
+
+    @commands.command()
+    async def version(self,ctx):
+        version_file = Path("./version.txt")
+        await ctx.reply(f"Version: {version_file.read_text()}")
 
 async def setup(bot):
     await bot.add_cog(UtilityCommands(bot))
