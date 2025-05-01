@@ -35,7 +35,7 @@ class SearchCommands(commands.Cog):
                 **extra_args,
                 limit=1)]
 
-        counts: dict[Any, int] = {}
+        counts: dict[tuple[str,T | None],int] = {}
 
         if not initial_search:
             total: int = 0
@@ -81,10 +81,12 @@ class SearchCommands(commands.Cog):
                     entity = message_transformer(message)
                     entity_name = name_transformer(entity)
 
-                    if entity not in counts:
-                        counts[(entity_name, entity)] = 0
+                    entity_key = (entity_name, entity)
+
+                    if entity_key not in counts:
+                        counts[entity_key] = 0
                     
-                    counts[(entity_name, entity)] += 1
+                    counts[entity_key] += 1
                     remaining -= 1
 
         if remaining:
