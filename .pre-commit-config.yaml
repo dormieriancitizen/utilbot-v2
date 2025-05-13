@@ -20,12 +20,14 @@ repos:
         - --profile
         - black
         - --filter-files
-# -   repo: https://github.com/RobertCraigie/pyright-python
-    # rev: v1.1.390
-    # hooks:
-      # - id: pyright
-        # language_version: python3.13
-# -   repo: https://github.com/PyCQA/flake8
-    # rev: 7.0.0
-    # hooks:
-      # - id: flake8
+-   repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.390
+    hooks:
+      - id: pyright
+        language_version: python3.13
+        additional_dependencies:
+          - discord.py-self @ git+https://github.com/dolfies/discord.py-self
+-   repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8

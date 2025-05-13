@@ -3,16 +3,20 @@ import json
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from time import time_ns
-from typing import Any, Callable, Iterable, TypeVar
+from typing import Any, Callable, TypeVar
 
 import discord
 from discord.ext import commands
 
 T = TypeVar("T")
 
+CACHE_ROOT = Path("./cache")
+
 
 class SearchCommands(commands.Cog):
     """Commands to deal with the searching of messages"""
+
+    count = commands.Group()
 
     def __init__(self, bot):
         self.bot = bot
@@ -20,33 +24,6 @@ class SearchCommands(commands.Cog):
 
     def sort_dict(self, x) -> dict[Any, Any]:
         return dict(sorted(x.items(), key=lambda item: item[1]))
-
-    def slice_string(self, s, size=2000):
-        return [s[i : i + size] for i in range(0, len(s), size)]
-
-    async def respond(self, message: discord.Message, response: str):
-        def slice_string_lines(text: str, chunk_size: int = 2000) -> list[str]:
-            lines = text.splitlines(keepends=True)
-            chunks: list[str] = []
-
-            curr_chunk: list[str] = []
-
-            for line in lines:
-                if sum(len(s) for s in curr_chunk) + len(line) < chunk_size:
-                    curr_chunk.append(line)
-                else:
-                    chunks.append("".join(curr_chunk))
-                    curr_chunk = [line]
-
-            return chunks
-
-        if len(response) < 2000:
-            await message.edit(content=response)
-        else:
-            chunks = slice_string_lines(response, chunk_size=2000)
-
-            for chunk in chunks:
-                await message.channel.send(chunk)
 
     async def _get_counts(
         self,
@@ -83,6 +60,7 @@ class SearchCommands(commands.Cog):
                 else:
                     search = guild.search(content=search_string, limit=1, **extra_args)
 
+                entity_name = name_transformer(entity)
                 try:
                     messages = [m async for m in search]
 
@@ -90,8 +68,6 @@ class SearchCommands(commands.Cog):
                         message_count: int = messages[0].total_results  # type: ignore
                     else:
                         message_count = 0
-
-                    entity_name = name_transformer(entity)
 
                     counts[(entity_name, entity)] = message_count
                     remaining -= message_count
@@ -118,15 +94,44 @@ class SearchCommands(commands.Cog):
         counts = self.sort_dict(counts)
         return counts, total
 
-    @commands.group()
-    async def count(self, ctx):
-        if ctx.subcommand_passed is None:
-            m = await ctx.reply("Loading...")
+    async def _respond(self, message: discord.Message, response: str):
+        def slice_string_lines(text: str, chunk_size: int = 2000) -> list[str]:
+            lines = text.splitlines(keepends=True)
+            chunks: list[str] = []
 
-            message: discord.Message = [m async for m in ctx.channel.search(limit=1)][0]
-            await m.edit(f"{message.total_results} messages")
-        elif ctx.invoked_subcommand is None:
-            await ctx.reply(f"Searchtype {ctx.subcommand_passed} does not exist")
+            curr_chunk: list[str] = []
+
+            for line in lines:
+                if sum(len(s) for s in curr_chunk) + len(line) < chunk_size:
+                    curr_chunk.append(line)
+                else:
+                    chunks.append("".join(curr_chunk))
+                    curr_chunk = [line]
+
+            return chunks
+
+        if len(response) < 2000:
+            await message.edit(content=response)
+        else:
+            chunks = slice_string_lines(response, chunk_size=2000)
+
+            for chunk in chunks:
+                await message.channel.send(chunk)
+
+    def _store_guild_message_counts(
+        self,
+        guild: discord.Guild,
+        counts: dict[tuple[str, discord.User | discord.Member | None], int],
+    ):
+        cache_path = CACHE_ROOT / f"message_count_cache.{guild.id}"
+        id_counts: dict[int, int] = {
+            member[1].id: count
+            for member, count in counts.items()
+            if not (member[1] is None)
+        }
+
+        with open(cache_path, "w") as cache_file:
+            json.dump(id_counts, cache_file)
 
     @count.command(name="build_cache")
     async def build_cache(self, ctx):
@@ -146,7 +151,7 @@ class SearchCommands(commands.Cog):
             await ctx.reply("This command can't be run outside a guild!")
             return
 
-        cache_path = Path(f"cache/message_count_cache.{ctx.guild.id}")
+        cache_path = CACHE_ROOT / f"message_count_cache.{ctx.guild.id}"
         if cache_path.exists():
             last_cache_str = datetime.fromtimestamp(
                 cache_path.lstat().st_mtime
@@ -161,7 +166,7 @@ class SearchCommands(commands.Cog):
 
             await ctx.reply("Continuing")
 
-        counts, total = await self._get_counts(
+        counts, _ = await self._get_counts(
             guild=ctx.message.guild,
             entities=(await ctx.guild.fetch_members()),
             message_transformer=lambda message: message.author,
@@ -169,16 +174,10 @@ class SearchCommands(commands.Cog):
             search_arg="authors",
         )
 
-        id_counts: dict[int, int] = {
-            member[1].id: count
-            for member, count in counts.items()
-            if not (member[1] is None)
-        }
-
-        with open(cache_path, "w") as cache_file:
-            json.dump(id_counts, cache_file)
-
-        await ctx.reply(f"Built cache of {len(id_counts)} members")
+        self._store_guild_message_counts(ctx.guild, counts)
+        await ctx.reply(
+            f"Built cache of {len([count for count in counts if count is not None])} members"
+        )
 
     @count.command(name="users")
     async def user_count(self, ctx, *args):
@@ -194,14 +193,7 @@ class SearchCommands(commands.Cog):
             search_arg="authors",
         )
 
-        cache_path = Path(f"cache/message_count_cache.{ctx.guild.id}")
-        id_counts: dict[int, int] = {
-            member[1].id: count
-            for member, count in counts.items()
-            if not (member[1] is None)
-        }
-        with open(cache_path, "w") as cache_file:
-            json.dump(id_counts, cache_file)
+        self._store_guild_message_counts(ctx.guild, counts)
 
         response = f" # {search_string}: {total}\n"
         response += "\n".join(
@@ -211,7 +203,7 @@ class SearchCommands(commands.Cog):
             ]
         )
 
-        await self.respond(m, response)
+        await self._respond(m, response)
 
     @count.command(name="per_cent")
     async def per_cent(self, ctx, *queries):
@@ -224,7 +216,7 @@ class SearchCommands(commands.Cog):
             )
         ]
 
-        cache_path = Path(f"cache/message_count_cache.{ctx.guild.id}")
+        cache_path = CACHE_ROOT / f"message_count_cache.{ctx.guild.id}"
         if not cache_path.exists():
             await ctx.reply(
                 "No cache found! Build the cache with `build_cache` and try again"
@@ -243,13 +235,12 @@ class SearchCommands(commands.Cog):
 
         response = "# percent \n"
         response += "\n".join(
-            [
-                f" - `{members[member_id].name}`: `{self.round_to_sig_figs((count / total_messages)*100,figs=3)}%`"
-                for member_id, count in total_counts.items()
-            ]
+            f" - `{members[member_id].name}`: "
+            + f"`{self.round_to_sig_figs((count / total_messages)*100)}%`"
+            for member_id, count in total_counts.items()
         )
 
-        await self.respond(m, response)
+        await self._respond(m, response)
 
     @count.command(name="compare")
     async def comparison_count(self, ctx, *queries):
@@ -271,7 +262,7 @@ class SearchCommands(commands.Cog):
             [f" - `{query}`: `{counts[query]}` messages" for query in counts]
         )
 
-        await self.respond(m, response)
+        await self._respond(m, response)
 
     @count.command(name="imagers")
     async def image_count(self, ctx):
@@ -294,7 +285,7 @@ class SearchCommands(commands.Cog):
             ]
         )
 
-        await self.respond(m, response)
+        await self._respond(m, response)
 
     def round_to_sig_figs(self, number, figs=3):
         return "{:g}".format(float("{:.{p}g}".format(number, p=figs)))
@@ -305,7 +296,7 @@ class SearchCommands(commands.Cog):
         m = await ctx.reply("Loading...")
         search_string = " ".join(args)
 
-        cache_path = Path(f"cache/message_count_cache.{ctx.guild.id}")
+        cache_path = CACHE_ROOT / "message_count_cache.{ctx.guild.id}"
         if not cache_path.exists():
             await ctx.reply(
                 "No cache found! Build the cache with `build_cache` and try again"
@@ -336,12 +327,13 @@ class SearchCommands(commands.Cog):
         response = f"# {search_string} per capita\n"
         response += "\n".join(
             [
-                f" - `{member[0]}`: **{self.round_to_sig_figs(rates[member]*100,4)}%**  ->  {counts[member]}"
+                f" - `{member[0]}`: **{self.round_to_sig_figs(rates[member]*100, 4)}%**"
+                + f"  ->  {counts[member]}"
                 for member in rates
             ]
         )
 
-        await self.respond(m, response)
+        await self._respond(m, response)
 
     @count.command(name="mentions")
     async def mentions_count(self, ctx):
@@ -364,7 +356,7 @@ class SearchCommands(commands.Cog):
             ]
         )
 
-        await self.respond(m, response)
+        await self._respond(m, response)
 
     @count.command(name="channels")
     async def channels_count(self, ctx, *args):
@@ -389,7 +381,7 @@ class SearchCommands(commands.Cog):
             [f" - `{channel[0]}` has {counts[channel]} messages" for channel in counts]
         )
 
-        await self.respond(m, response)
+        await self._respond(m, response)
 
     @count.command(name="dates")
     async def dates(self, ctx, num_days: int):
@@ -418,9 +410,11 @@ class SearchCommands(commands.Cog):
             else:
                 counts[day] = 0
 
-        with Path(
-            f"cache/day_message_count.{ctx.guild.id}.{round(time_ns()*1000)}"
-        ).open("w") as f:
+        cache_path: Path = (
+            CACHE_ROOT
+            / f"cache/day_message_count.{ctx.guild.id}.{round(time_ns()*1000)}"
+        )
+        with cache_path.open("w") as f:
             parsable_counts: dict[str, int] = {
                 day.strftime("%F"): count for day, count in counts.items()
             }
@@ -434,7 +428,7 @@ class SearchCommands(commands.Cog):
             ]
         )
 
-        await self.respond(m, response)
+        await self._respond(m, response)
 
 
 async def setup(bot):
