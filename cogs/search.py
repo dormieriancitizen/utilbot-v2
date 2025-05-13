@@ -16,13 +16,11 @@ CACHE_ROOT = Path("./cache")
 class SearchCommands(commands.Cog):
     """Commands to deal with the searching of messages"""
 
-    count = commands.Group()
-
     def __init__(self, bot):
         self.bot = bot
         self._last_member = None
 
-    def sort_dict(self, x) -> dict[Any, Any]:
+    def sort_dict(self, x: dict[T, Any]) -> dict[T, Any]:
         return dict(sorted(x.items(), key=lambda item: item[1]))
 
     async def _get_counts(
@@ -118,6 +116,8 @@ class SearchCommands(commands.Cog):
             for chunk in chunks:
                 await message.channel.send(chunk)
 
+            await message.edit(content="Done")
+
     def _store_guild_message_counts(
         self,
         guild: discord.Guild,
@@ -132,6 +132,10 @@ class SearchCommands(commands.Cog):
 
         with open(cache_path, "w") as cache_file:
             json.dump(id_counts, cache_file)
+
+    @commands.group(name="count")
+    async def count(self, ctx):
+        pass
 
     @count.command(name="build_cache")
     async def build_cache(self, ctx):
@@ -238,6 +242,49 @@ class SearchCommands(commands.Cog):
             f" - `{members[member_id].name}`: "
             + f"`{self.round_to_sig_figs((count / total_messages)*100)}%`"
             for member_id, count in total_counts.items()
+        )
+
+        await self._respond(m, response)
+
+    @count.command(name="mentions_per_message")
+    async def mentions_per_message_count(self, ctx, *args):
+        m = await ctx.reply("Loading...")
+
+        mentions_counts, _ = await self._get_counts(
+            guild=ctx.message.guild,
+            search_string="",
+            entities=(await ctx.guild.fetch_members()),
+            message_transformer=None,
+            name_transformer=lambda author: author.name,
+            search_arg="mentions",
+        )
+
+        cache_path = CACHE_ROOT / f"message_count_cache.{ctx.guild.id}"
+        if not cache_path.exists():
+            await ctx.reply(
+                "No cache found! Build the cache with `build_cache` and try again"
+            )
+            return
+
+        with open(cache_path, "r") as cache_file:
+            total_message_counts: dict[str, int] = json.load(cache_file)
+
+        ratios: dict[str, float] = {}
+        for (member_name, member), mentions in mentions_counts.items():
+            if member is None:
+                continue
+            if str(member.id) not in total_message_counts:
+                continue
+            ratios[member_name] = mentions / total_message_counts[str(member.id)]
+
+        ratios = self.sort_dict(ratios)
+
+        response = "# Mentions Per Message\n"
+        response += "\n".join(
+            [
+                f" - `{member_name}` has `{self.round_to_sig_figs(ratio)}` mentions / message"
+                for member_name, ratio in ratios.items()
+            ]
         )
 
         await self._respond(m, response)
