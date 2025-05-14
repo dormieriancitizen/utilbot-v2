@@ -3,7 +3,7 @@ import json
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from time import time_ns
-from typing import Any, Callable, TypeVar
+from typing import Any, Awaitable, Callable, TypeVar
 
 import discord
 from discord.ext import commands
@@ -23,12 +23,30 @@ class SearchCommands(commands.Cog):
     def sort_dict(self, x: dict[T, Any]) -> dict[T, Any]:
         return dict(sorted(x.items(), key=lambda item: item[1]))
 
+    def count_status_update(self, message):
+        last_completed = 0
+
+        async def update(completed: int, total: int):
+            nonlocal last_completed
+
+            if (total / 5) > 100:
+                step = total / 5
+            else:
+                step = 100
+
+            if completed - last_completed > step or completed == total:
+                last_completed = completed
+                await message.edit(content=f"Loading... {completed} / {total}")
+
+        return update
+
     async def _get_counts(
         self,
         guild: discord.Guild,
         entities: list[T],
         message_transformer: Callable[[discord.Message], T] | None,
         name_transformer: Callable[[T], str],
+        status_update: Callable[[int, int], Awaitable[None]] | None,
         search_string: str = "",
         search_arg: str | None = None,
         extra_args: dict[str, Any] = {},
@@ -59,18 +77,26 @@ class SearchCommands(commands.Cog):
                     search = guild.search(content=search_string, limit=1, **extra_args)
 
                 entity_name = name_transformer(entity)
+
                 try:
                     messages = [m async for m in search]
-
-                    if messages:
-                        message_count: int = messages[0].total_results  # type: ignore
-                    else:
-                        message_count = 0
-
-                    counts[(entity_name, entity)] = message_count
-                    remaining -= message_count
                 except discord.errors.Forbidden:
                     counts[(entity_name, entity)] = -1
+                    continue
+
+                if messages:
+                    message_count: int = messages[0].total_results  # type: ignore
+                else:
+                    message_count = 0
+
+                counts[(entity_name, entity)] = message_count
+                remaining -= message_count
+
+                if status_update:
+                    await status_update(total - remaining, total)
+
+                if remaining == 0:
+                    break
         else:
             # More efficient to go through a raw search
             if total > 0:
@@ -86,8 +112,14 @@ class SearchCommands(commands.Cog):
                     counts[entity_key] += 1
                     remaining -= 1
 
+                    if status_update:
+                        await status_update(total - remaining, total)
+
         if remaining:
             counts[("other", None)] = remaining
+
+        if status_update:
+            await status_update(total, total)
 
         counts = self.sort_dict(counts)
         return counts, total
@@ -133,6 +165,16 @@ class SearchCommands(commands.Cog):
         with open(cache_path, "w") as cache_file:
             json.dump(id_counts, cache_file)
 
+    def _get_message_count_cache(self, guild: discord.Guild) -> dict[str, int] | None:
+        cache_path = CACHE_ROOT / f"message_count_cache.{guild.id}"
+        if not cache_path.exists():
+            return None
+
+        with open(cache_path, "r") as cache_file:
+            total_counts = json.load(cache_file)
+
+        return total_counts
+
     @commands.group(name="count")
     async def count(self, ctx):
         pass
@@ -176,6 +218,7 @@ class SearchCommands(commands.Cog):
             message_transformer=lambda message: message.author,
             name_transformer=lambda user: user.name,
             search_arg="authors",
+            status_update=None,
         )
 
         self._store_guild_message_counts(ctx.guild, counts)
@@ -195,6 +238,7 @@ class SearchCommands(commands.Cog):
             message_transformer=lambda message: message.author,
             name_transformer=lambda author: author.name,
             search_arg="authors",
+            status_update=self.count_status_update(m),
         )
 
         self._store_guild_message_counts(ctx.guild, counts)
@@ -203,6 +247,30 @@ class SearchCommands(commands.Cog):
         response += "\n".join(
             [
                 f" - `{member[0]}` has sent `{counts[member]}` messages"
+                for member in counts
+            ]
+        )
+
+        await self._respond(m, response)
+
+    @count.command(name="pings")
+    async def ping_count(self, ctx, target: discord.Member):
+        m = await ctx.reply("Loading...")
+
+        counts, total = await self._get_counts(
+            guild=ctx.message.guild,
+            search_string=target.mention,
+            entities=(await ctx.guild.fetch_members()),
+            message_transformer=lambda message: message.author,
+            name_transformer=lambda author: author.name,
+            search_arg="authors",
+            status_update=self.count_status_update(m),
+        )
+
+        response = f" # Pings for {target.name}: {total}\n"
+        response += "\n".join(
+            [
+                f" - `{member[0]}` has pinged them `{counts[member]}` times"
                 for member in counts
             ]
         )
@@ -220,8 +288,8 @@ class SearchCommands(commands.Cog):
             )
         ]
 
-        cache_path = CACHE_ROOT / f"message_count_cache.{ctx.guild.id}"
-        if not cache_path.exists():
+        total_counts = self._get_message_count_cache(ctx.guild)
+        if not total_counts:
             await ctx.reply(
                 "No cache found! Build the cache with `build_cache` and try again"
             )
@@ -229,10 +297,7 @@ class SearchCommands(commands.Cog):
 
         members = {str(m.id): m for m in await ctx.guild.fetch_members()}
 
-        with open(cache_path, "r") as cache_file:
-            total_counts = json.load(cache_file)
-
-        if search:
+        if search and search[0].total_results:
             total_messages = search[0].total_results
         else:
             total_messages = 0
@@ -257,17 +322,15 @@ class SearchCommands(commands.Cog):
             message_transformer=None,
             name_transformer=lambda author: author.name,
             search_arg="mentions",
+            status_update=self.count_status_update(m),
         )
 
-        cache_path = CACHE_ROOT / f"message_count_cache.{ctx.guild.id}"
-        if not cache_path.exists():
+        total_message_counts = self._get_message_count_cache(ctx.guild)
+        if not total_message_counts:
             await ctx.reply(
                 "No cache found! Build the cache with `build_cache` and try again"
             )
             return
-
-        with open(cache_path, "r") as cache_file:
-            total_message_counts: dict[str, int] = json.load(cache_file)
 
         ratios: dict[str, float] = {}
         for (member_name, member), mentions in mentions_counts.items():
@@ -322,6 +385,7 @@ class SearchCommands(commands.Cog):
             name_transformer=lambda author: author.name,
             search_arg="authors",
             extra_args={"has": ["image"]},
+            status_update=self.count_status_update(m),
         )
 
         response = f"# Images: {total}\n"
@@ -343,15 +407,12 @@ class SearchCommands(commands.Cog):
         m = await ctx.reply("Loading...")
         search_string = " ".join(args)
 
-        cache_path = CACHE_ROOT / "message_count_cache.{ctx.guild.id}"
-        if not cache_path.exists():
+        total_counts = self._get_message_count_cache(ctx.guild)
+        if not total_counts:
             await ctx.reply(
                 "No cache found! Build the cache with `build_cache` and try again"
             )
             return
-
-        with open(cache_path, "r") as cache_file:
-            total_counts = json.load(cache_file)
 
         counts, total = await self._get_counts(
             guild=ctx.message.guild,
@@ -360,9 +421,10 @@ class SearchCommands(commands.Cog):
             message_transformer=lambda message: message.author,
             name_transformer=lambda author: author.name,
             search_arg="authors",
+            status_update=self.count_status_update(m),
         )
 
-        rates: dict[tuple[str, discord.User | discord.Member], int] = {}
+        rates: dict[tuple[str, discord.User | discord.Member], float] = {}
         for member, count in counts.items():
             if member[1] is None:
                 continue
@@ -393,6 +455,7 @@ class SearchCommands(commands.Cog):
             message_transformer=None,
             name_transformer=lambda author: author.name,
             search_arg="mentions",
+            status_update=self.count_status_update(m),
         )
 
         response = f"# Mentions: {total}\n"
@@ -421,6 +484,7 @@ class SearchCommands(commands.Cog):
                 else "Unknown Channel"
             ),
             search_arg="channels",
+            status_update=self.count_status_update(m),
         )
 
         response = f"# {search_string}: {total}\n" if search_string else "# Channels\n"
