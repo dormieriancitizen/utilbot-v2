@@ -241,7 +241,8 @@ class SearchCommands(commands.Cog):
             status_update=self.count_status_update(m),
         )
 
-        self._store_guild_message_counts(ctx.guild, counts)
+        if not search_string:
+            self._store_guild_message_counts(ctx.guild, counts)
 
         response = f" # {search_string}: {total}\n"
         response += "\n".join(
@@ -259,7 +260,7 @@ class SearchCommands(commands.Cog):
 
         counts, total = await self._get_counts(
             guild=ctx.message.guild,
-            search_string=target.mention,
+            search_string=f"<@{target.id}>",
             entities=(await ctx.guild.fetch_members()),
             message_transformer=lambda message: message.author,
             name_transformer=lambda author: author.name,
