@@ -8,7 +8,7 @@ charset-normalizer==3.4.1
 colorama==0.4.6
 curl_cffi==0.10.0
 discord-protos==0.0.2
-discord.py-self @ git+https://github.com/dolfies/discord.py-self
+discord.py-self @ git+https://github.com/dolfies/discord.py-self@20ae80b398ec83fa272f0a96812140e14868c88f
 frozenlist==1.5.0
 idna==3.10
 multidict==6.1.0

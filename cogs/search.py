@@ -150,6 +150,33 @@ class SearchCommands(commands.Cog):
 
             await message.edit(content="Done")
 
+    def _store_guild_channel_counts(
+        self,
+        guild: discord.Guild,
+        counts: dict[tuple[str, discord.TextChannel | None], int],
+    ):
+        cache_path = CACHE_ROOT / f"channel_count_cache.{guild.id}"
+        id_counts: dict[int, int] = {
+            channel[1].id: count
+            for channel, count in counts.items()
+            if not (channel[1] is None)
+        }
+
+        with open(cache_path, "w") as cache_file:
+            json.dump(id_counts, cache_file)
+
+    def _get_guild_channel_count_cache(
+        self, guild: discord.Guild
+    ) -> dict[str, int] | None:
+        cache_path = CACHE_ROOT / f"channel_count_cache.{guild.id}"
+        if not cache_path.exists():
+            return None
+
+        with open(cache_path, "r") as cache_file:
+            total_counts = json.load(cache_file)
+
+        return total_counts
+
     def _store_guild_message_counts(
         self,
         guild: discord.Guild,
@@ -488,6 +515,9 @@ class SearchCommands(commands.Cog):
             status_update=self.count_status_update(m),
         )
 
+        if not search_string:
+            self._store_guild_channel_counts(ctx.guild, counts)  # type: ignore
+
         response = f"# {search_string}: {total}\n" if search_string else "# Channels\n"
         response += "\n".join(
             [f" - `{channel[0]}` has {counts[channel]} messages" for channel in counts]
@@ -523,10 +553,9 @@ class SearchCommands(commands.Cog):
                 counts[day] = 0
 
         cache_path: Path = (
-            CACHE_ROOT
-            / f"cache/day_message_count.{ctx.guild.id}.{round(time_ns()*1000)}"
+            CACHE_ROOT / f"day_message_count.{ctx.guild.id}.{round(time_ns()*1000)}"
         )
-        with cache_path.open("w") as f:
+        with open(cache_path, "w") as f:
             parsable_counts: dict[str, int] = {
                 day.strftime("%F"): count for day, count in counts.items()
             }
