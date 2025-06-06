@@ -26,7 +26,7 @@ repos:
       - id: pyright
         language_version: python3.13
         additional_dependencies:
-          - discord.py-self @ git+https://github.com/dolfies/discord.py-self
+          - discord.py-self @ git+https://github.com/dolfies/discord.py-self@20ae80b398ec83fa272f0a96812140e14868c88f
 -   repo: https://github.com/PyCQA/flake8
     rev: 7.0.0
     hooks:

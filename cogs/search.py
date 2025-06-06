@@ -3,7 +3,7 @@ import json
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from time import time_ns
-from typing import Any, Awaitable, Callable, TypeVar
+from typing import Any, Awaitable, Callable, Mapping, TypeVar
 
 import discord
 from discord.ext import commands
@@ -153,7 +153,7 @@ class SearchCommands(commands.Cog):
     def _store_guild_channel_counts(
         self,
         guild: discord.Guild,
-        counts: dict[tuple[str, discord.TextChannel | None], int],
+        counts: Mapping[tuple[str, discord.abc.MessageableChannel | None], int],
     ):
         cache_path = CACHE_ROOT / f"channel_count_cache.{guild.id}"
         id_counts: dict[int, int] = {
@@ -180,7 +180,7 @@ class SearchCommands(commands.Cog):
     def _store_guild_message_counts(
         self,
         guild: discord.Guild,
-        counts: dict[tuple[str, discord.User | discord.Member | None], int],
+        counts: Mapping[tuple[str, discord.User | discord.Member | None], int],
     ):
         cache_path = CACHE_ROOT / f"message_count_cache.{guild.id}"
         id_counts: dict[int, int] = {
@@ -516,7 +516,7 @@ class SearchCommands(commands.Cog):
         )
 
         if not search_string:
-            self._store_guild_channel_counts(ctx.guild, counts)  # type: ignore
+            self._store_guild_channel_counts(ctx.guild, counts)
 
         response = f"# {search_string}: {total}\n" if search_string else "# Channels\n"
         response += "\n".join(
