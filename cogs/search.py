@@ -165,7 +165,7 @@ class SearchCommands(commands.Cog):
         id_counts: dict[int, int] = {
             channel[1].id: count
             for channel, count in counts.items()
-            if not (channel[1] is None)
+            if channel[1] is not None
         }
 
         with open(cache_path, "w") as cache_file:
@@ -190,7 +190,7 @@ class SearchCommands(commands.Cog):
         id_counts: dict[int, int] = {
             member[1].id: count
             for member, count in counts.items()
-            if not (member[1] is None)
+            if member[1] is not None
         }
 
         with open(cache_path, "w") as cache_file:
@@ -337,7 +337,7 @@ class SearchCommands(commands.Cog):
         response = "# percent \n"
         response += "\n".join(
             f" - `{members[member_id].name}`: "
-            + f"`{self.round_to_sig_figs((count / total_messages)*100)}%`"
+            + f"`{self.round_to_sig_figs((count / total_messages) * 100)}%`"
             for member_id, count in total_counts.items()
         )
 
@@ -435,7 +435,6 @@ class SearchCommands(commands.Cog):
 
     @count.command(name="per_capita")
     async def per_capita_count(self, ctx, *args):
-
         m = await ctx.reply("Loading...")
         search_string = " ".join(args)
 
@@ -468,7 +467,7 @@ class SearchCommands(commands.Cog):
         response = f"# {search_string} per capita\n"
         response += "\n".join(
             [
-                f" - `{member[0]}`: **{self.round_to_sig_figs(rates[member]*100, 4)}%**"
+                f" - `{member[0]}`: **{self.round_to_sig_figs(rates[member] * 100, 4)}%**"
                 + f"  ->  {counts[member]}"
                 for member in rates
             ]
@@ -557,7 +556,7 @@ class SearchCommands(commands.Cog):
                 counts[day] = 0
 
         cache_path: Path = (
-            CACHE_ROOT / f"day_message_count.{ctx.guild.id}.{round(time_ns()*1000)}"
+            CACHE_ROOT / f"day_message_count.{ctx.guild.id}.{round(time_ns() * 1000)}"
         )
         with open(cache_path, "w") as f:
             parsable_counts: dict[str, int] = {

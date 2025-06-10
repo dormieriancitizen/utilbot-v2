@@ -12,7 +12,7 @@ class UtilityCommands(commands.Cog):
 
     @commands.command()
     async def ping(self, ctx):
-        await ctx.reply(f"pong {round(self.bot.latency*1000)}ms")
+        await ctx.reply(f"pong {round(self.bot.latency * 1000)}ms")
 
     @commands.command()
     async def wait(self, ctx, time: int):
@@ -42,7 +42,7 @@ class UtilityCommands(commands.Cog):
         for channel in ctx.message.guild.text_channels:
             try:
                 await channel.send(content)
-            except:
+            except discord.Forbidden:
                 pass
 
     @commands.command()

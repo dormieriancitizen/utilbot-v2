@@ -1,10 +1,9 @@
 import os
 
 from dotenv import load_dotenv
+from discord.ext import commands
 
 load_dotenv()
-
-from discord.ext import commands
 
 bot = commands.Bot(command_prefix=str(os.getenv("PREFIX")), self_bot=True)
 

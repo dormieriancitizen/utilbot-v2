@@ -1,33 +1,28 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
-    hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-added-large-files
--   repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 24.10.0
-    hooks:
-      - id: black
--   repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-    - id: isort
-      args:
-        - --profile
-        - black
-        - --filter-files
--   repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.390
-    hooks:
-      - id: pyright
-        language_version: python3.13
-        additional_dependencies:
-          - discord.py-self @ git+https://github.com/dolfies/discord.py-self@20ae80b398ec83fa272f0a96812140e14868c88f
--   repo: https://github.com/PyCQA/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v3.2.0
+  hooks:
+  -   id: trailing-whitespace
+  -   id: end-of-file-fixer
+  -   id: check-yaml
+  -   id: check-added-large-files
+- repo: https://github.com/RobertCraigie/pyright-python
+  rev: v1.1.390
+  hooks:
+    - id: pyright
+      language_version: python3.13
+      additional_dependencies:
+        - discord.py-self @ git+https://github.com/dolfies/discord.py-self@20ae80b398ec83fa272f0a96812140e14868c88f
+        - colorama
+        - python-dotenv
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  # Ruff version.
+  rev: v0.11.13
+  hooks:
+    # Run the linter.
+    - id: ruff-check
+      args: [ --fix ]
+    # Run the formatter.
+    - id: ruff-format
