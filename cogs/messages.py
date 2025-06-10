@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 import regex
 from colorama import Back, Fore, Style
@@ -37,17 +39,31 @@ class MessagesCommands(commands.Cog):
         self.bot = bot
         self._last_member = None
 
-    async def _spam(self, channel, string, count):
+    async def _spam(
+        self, channel: discord.TextChannel, string: str, count: int, delay: float = 0.0
+    ):
         if len(string) > 2000:
             raise Exception("String must be shorter than 2000 characters")
 
-        for i in range(count):
+        for _ in range(count):
             await channel.send(string)
+            if delay:
+                await asyncio.sleep(delay)
 
     @commands.command()
-    async def spam(self, ctx, count: int, *args):
+    async def spam(self, ctx, count: int, msg: str, delay: float = 0.0):
+        """
+        Repeat a certain message a given number of times
+
+        Parameters
+        ----------
+        count: int
+            The number of times to repeat
+        delay: float
+            Optional, the time to wait in between messages.
+        """
         await ctx.message.delete()
-        await self._spam(ctx.channel, " ".join(args), count)
+        await self._spam(ctx.channel, msg, count, delay=delay)
 
     @commands.command()
     async def lag(self, ctx, count: int):
@@ -110,7 +126,6 @@ class MessagesCommands(commands.Cog):
             Fore.MAGENTA,
             Fore.RED,
         ]
-        # back_wheel = [Back.RED,Back.MAGENTA,Back.YELLOW,Back.GREEN,Back.BLUE,Back.GREEN,Back.YELLOW,Back.MAGENTA,Back.RED]
 
         out = ""
         for i, char in enumerate(" ".join(args)):

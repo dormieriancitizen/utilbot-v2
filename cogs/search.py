@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 import asyncio
 import json
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from time import time_ns
-from typing import Any, Awaitable, Callable, Mapping, TypeVar
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping, TypeVar
 
 import discord
 from discord.ext import commands
+
+if TYPE_CHECKING:
+    from discord import Guild, Member, Message, User
+    from discord.abc import MessageableChannel
 
 T = TypeVar("T")
 
@@ -42,9 +48,9 @@ class SearchCommands(commands.Cog):
 
     async def _get_counts(
         self,
-        guild: discord.Guild,
+        guild: Guild,
         entities: list[T],
-        message_transformer: Callable[[discord.Message], T] | None,
+        message_transformer: Callable[[Message], T] | None,
         name_transformer: Callable[[T], str],
         status_update: Callable[[int, int], Awaitable[None]] | None,
         search_string: str = "",
@@ -124,7 +130,7 @@ class SearchCommands(commands.Cog):
         counts = self.sort_dict(counts)
         return counts, total
 
-    async def _respond(self, message: discord.Message, response: str):
+    async def _respond(self, message: Message, response: str):
         def slice_string_lines(text: str, chunk_size: int = 2000) -> list[str]:
             lines = text.splitlines(keepends=True)
             chunks: list[str] = []
@@ -152,8 +158,8 @@ class SearchCommands(commands.Cog):
 
     def _store_guild_channel_counts(
         self,
-        guild: discord.Guild,
-        counts: Mapping[tuple[str, discord.abc.MessageableChannel | None], int],
+        guild: Guild,
+        counts: Mapping[tuple[str, MessageableChannel | None], int],
     ):
         cache_path = CACHE_ROOT / f"channel_count_cache.{guild.id}"
         id_counts: dict[int, int] = {
@@ -165,9 +171,7 @@ class SearchCommands(commands.Cog):
         with open(cache_path, "w") as cache_file:
             json.dump(id_counts, cache_file)
 
-    def _get_guild_channel_count_cache(
-        self, guild: discord.Guild
-    ) -> dict[str, int] | None:
+    def _get_guild_channel_count_cache(self, guild: Guild) -> dict[str, int] | None:
         cache_path = CACHE_ROOT / f"channel_count_cache.{guild.id}"
         if not cache_path.exists():
             return None
@@ -179,8 +183,8 @@ class SearchCommands(commands.Cog):
 
     def _store_guild_message_counts(
         self,
-        guild: discord.Guild,
-        counts: Mapping[tuple[str, discord.User | discord.Member | None], int],
+        guild: Guild,
+        counts: Mapping[tuple[str, User | Member | None], int],
     ):
         cache_path = CACHE_ROOT / f"message_count_cache.{guild.id}"
         id_counts: dict[int, int] = {
@@ -192,7 +196,7 @@ class SearchCommands(commands.Cog):
         with open(cache_path, "w") as cache_file:
             json.dump(id_counts, cache_file)
 
-    def _get_message_count_cache(self, guild: discord.Guild) -> dict[str, int] | None:
+    def _get_message_count_cache(self, guild: Guild) -> dict[str, int] | None:
         cache_path = CACHE_ROOT / f"message_count_cache.{guild.id}"
         if not cache_path.exists():
             return None
@@ -208,7 +212,7 @@ class SearchCommands(commands.Cog):
 
     @count.command(name="build_cache")
     async def build_cache(self, ctx):
-        def check(m: discord.Message):
+        def check(m: Message):
             if m.channel.id != ctx.channel.id:
                 return False
 
@@ -282,7 +286,7 @@ class SearchCommands(commands.Cog):
         await self._respond(m, response)
 
     @count.command(name="pings")
-    async def ping_count(self, ctx, target: discord.Member):
+    async def ping_count(self, ctx, target: Member):
         m = await ctx.reply("Loading...")
 
         counts, total = await self._get_counts(
@@ -308,7 +312,7 @@ class SearchCommands(commands.Cog):
     @count.command(name="per_cent")
     async def per_cent(self, ctx, *queries):
         m = await ctx.reply("Loading...")
-        search: list[discord.Message] = [
+        search: list[Message] = [
             m
             async for m in ctx.guild.search(
                 before=datetime.combine(date.today() + timedelta(days=1), time.min),
@@ -386,7 +390,7 @@ class SearchCommands(commands.Cog):
 
         counts = {}
         for query in queries:
-            search: list[discord.Message] = [
+            search: list[Message] = [
                 m async for m in ctx.guild.search(content=query, limit=1)
             ]
 
@@ -452,7 +456,7 @@ class SearchCommands(commands.Cog):
             status_update=self.count_status_update(m),
         )
 
-        rates: dict[tuple[str, discord.User | discord.Member], float] = {}
+        rates: dict[tuple[str, User | Member], float] = {}
         for member, count in counts.items():
             if member[1] is None:
                 continue
@@ -540,7 +544,7 @@ class SearchCommands(commands.Cog):
 
         counts: dict[date, int] = {}
         for day, day_start, day_end in day_bounds:
-            search: list[discord.Message] = [
+            search: list[Message] = [
                 m
                 async for m in ctx.guild.search(
                     limit=1, after=day_start, before=day_end
