@@ -1,0 +1,19 @@
+[project]
+name = "utilbot-v2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "discord-py-self",
+    "python-dotenv==1.0.1",
+    "regex==2024.11.6",
+]
+
+[tool.uv.sources]
+discord-py-self = { git = "https://github.com/dolfies/discord.py-self", rev = "20ae80b398ec83fa272f0a96812140e14868c88f" }
+
+[dependency-groups]
+dev = [
+    "pre-commit==4.2.0",
+]

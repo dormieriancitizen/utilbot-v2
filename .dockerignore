@@ -1,7 +1,10 @@
 venv
+.venv
 .env
 dropins
 __pycache__/
 *.py[cod]
 *$py.class
 .vscode
+.cache
+.ruff_cache
