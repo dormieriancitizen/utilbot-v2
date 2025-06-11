@@ -286,7 +286,7 @@ class SearchCommands(commands.Cog):
         await self._respond(m, response)
 
     @count.command(name="pings")
-    async def ping_count(self, ctx, target: Member):
+    async def ping_count(self, ctx, target: discord.Member):
         m = await ctx.reply("Loading...")
 
         counts, total = await self._get_counts(
