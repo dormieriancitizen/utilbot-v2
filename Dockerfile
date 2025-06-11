@@ -14,22 +14,22 @@ UV_LINK_MODE=copy
 WORKDIR /app
 
 FROM base AS builder-base
-
+RUN apk add --no-cache git
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+COPY uv.lock pyproject.toml /app
 
 RUN uv venv $VIRTUAL_ENV
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-install-project
 
+COPY . /app/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked
 
 FROM base AS production
 RUN apk add --no-cache ffmpeg
 COPY --from=builder-base /opt/venv /opt/venv
-COPY . .
 
 # Specify the command to run your project
 CMD [ "python3", "main.py"]
