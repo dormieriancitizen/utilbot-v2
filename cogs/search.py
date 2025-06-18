@@ -86,7 +86,7 @@ class SearchCommands(commands.Cog):
 
                 try:
                     messages = [m async for m in search]
-                except discord.errors.Forbidden:
+                except discord.Forbidden:
                     counts[(entity_name, entity)] = -1
                     continue
 
