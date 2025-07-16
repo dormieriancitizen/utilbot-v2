@@ -134,7 +134,6 @@ class SearchCommands(commands.Cog):
         def slice_string_lines(text: str, chunk_size: int = 2000) -> list[str]:
             lines = text.splitlines(keepends=True)
             chunks: list[str] = []
-
             curr_chunk: list[str] = []
 
             for line in lines:
@@ -150,7 +149,6 @@ class SearchCommands(commands.Cog):
             await message.edit(content=response)
         else:
             chunks = slice_string_lines(response, chunk_size=2000)
-
             for chunk in chunks:
                 await message.channel.send(chunk)
 

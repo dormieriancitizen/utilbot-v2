@@ -30,6 +30,30 @@ class MimicCommands(commands.Cog):
             await webhook.delete(reason="Empheral webhook for mimicry")
 
     @commands.command()
+    async def blue(self, ctx, *args):
+        def to_chunks(s, n):
+            """Produce `n`-character chunks from `s`."""
+            for start in range(0, len(s), n):
+                yield s[start : start + n]
+
+        chunks = to_chunks(" ".join(args), 80)
+
+        webhooks = []
+        for chunk in chunks:
+            webhook = await ctx.channel.create_webhook(name=chunk, reason="blue")
+            webhooks.append(webhook)
+            await (await webhook.send("u wont see this for long", wait=True)).delete()
+
+        resp = ""
+        for webhook in webhooks:
+            resp += f"<@{webhook.id}>"
+
+        await ctx.message.edit(content=resp)
+
+        for webhook in webhooks:
+            await webhook.delete(reason="blue")
+
+    @commands.command()
     async def mimic(self, ctx, target: discord.Member, *args):
         message = " ".join(args)
         await ctx.message.delete()
