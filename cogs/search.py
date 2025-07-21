@@ -131,24 +131,19 @@ class SearchCommands(commands.Cog):
         return counts, total
 
     async def _respond(self, message: Message, response: str):
-        def slice_string_lines(text: str, chunk_size: int = 2000) -> list[str]:
-            lines = text.splitlines(keepends=True)
-            chunks: list[str] = []
-            curr_chunk: list[str] = []
-
-            for line in lines:
-                if sum(len(s) for s in curr_chunk) + len(line) < chunk_size:
-                    curr_chunk.append(line)
-                else:
-                    chunks.append("".join(curr_chunk))
-                    curr_chunk = [line]
-
-            return chunks
-
         if len(response) < 2000:
             await message.edit(content=response)
         else:
-            chunks = slice_string_lines(response, chunk_size=2000)
+            chunks: list[str] = []
+            curr_chunk: str = ""
+            for line in response.splitlines(keepends=True):
+                if len(line) + len(curr_chunk) < 2000:
+                    curr_chunk += line
+                else:
+                    chunks.append(curr_chunk)
+                    curr_chunk = line
+            chunks.append(curr_chunk)
+
             for chunk in chunks:
                 await message.channel.send(chunk)
 
@@ -341,6 +336,29 @@ class SearchCommands(commands.Cog):
 
         await self._respond(m, response)
 
+    @count.command(name="cached_channels")
+    async def cached_channels(
+        self,
+        ctx,
+    ):
+        m = await ctx.reply("Loading...")
+        total_counts = self._get_guild_channel_count_cache(ctx.guild)
+        if not total_counts:
+            await ctx.reply(
+                "No cache found! Build the cache with `build_cache` and try again"
+            )
+            return
+
+        channels = {x: self.bot.get_channel(int(x)).name for x in total_counts.keys()}
+
+        response = "# Channels \n"
+        response += "\n".join(
+            f" - `{channels[channel_id]}`: `{count}`"
+            for channel_id, count in total_counts.items()
+        )
+
+        await self._respond(m, response)
+
     @count.command(name="mentions_per_message")
     async def mentions_per_message_count(self, ctx, *args):
         m = await ctx.reply("Loading...")
@@ -430,6 +448,10 @@ class SearchCommands(commands.Cog):
 
     def round_to_sig_figs(self, number, figs=3):
         return "{:g}".format(float("{:.{p}g}".format(number, p=figs)))
+
+    @count.command(name="test_command")
+    async def test_command(self, ctx, lines: int, len: int):
+        await self._respond(ctx.message, ("o" * len) * lines)
 
     @count.command(name="per_capita")
     async def per_capita_count(self, ctx, *args):

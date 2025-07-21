@@ -24,6 +24,10 @@ class UtilityCommands(commands.Cog):
         await ctx.reply(member.avatar)
 
     @commands.command()
+    async def facepalm(self, ctx):
+        await ctx.message.edit(content="(－‸ლ)")
+
+    @commands.command()
     async def playing(self, ctx, *args):
         activity = discord.Game(name=" ".join(args))
         await self.bot.change_presence(status=discord.Status.online, activity=activity)
