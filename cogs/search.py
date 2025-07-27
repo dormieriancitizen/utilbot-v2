@@ -420,6 +420,7 @@ class SearchCommands(commands.Cog):
             [f" - `{query}`: `{counts[query]}` messages" for query in counts]
         )
 
+        counts = self.sort_dict(counts)
         await self._respond(m, response)
 
     @count.command(name="emojis")
@@ -450,6 +451,7 @@ class SearchCommands(commands.Cog):
             ]
         )
 
+        counts = self.sort_dict(counts)
         await self._respond(m, response)
 
     @count.command(name="imagers")
