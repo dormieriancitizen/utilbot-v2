@@ -422,6 +422,36 @@ class SearchCommands(commands.Cog):
 
         await self._respond(m, response)
 
+    @count.command(name="emojis")
+    async def emoji_count(self, ctx: commands.Context):
+        if not ctx.guild:
+            return
+
+        m = await ctx.reply("Loading...")
+
+        queries = {emoji: f"<:{emoji.name}:{emoji.id}>" for emoji in ctx.guild.emojis}
+
+        counts = {}
+        for emoji, query in queries.items():
+            search: list[Message] = [
+                m async for m in ctx.guild.search(content=query, limit=1)
+            ]
+
+            if search:
+                counts[emoji] = search[0].total_results
+            else:
+                counts[emoji] = 0
+
+        response = "# Emojis \n"
+        response += "\n".join(
+            [
+                f" - <:{emoji.name}:{emoji.id}>: `{counts[emoji]}` messages"
+                for emoji in counts
+            ]
+        )
+
+        await self._respond(m, response)
+
     @count.command(name="imagers")
     async def image_count(self, ctx):
         m = await ctx.reply("Loading...")
