@@ -4,19 +4,20 @@
 FROM python:3.13.2-alpine3.21 AS base
 
 ENV PYTHONFAULTHANDLER=1 \
-PYTHONUNBUFFERED=1 \
-PYTHONDONTWRITEBYTECODE=1 \
-UV_COMPILE_BYTECODE=1 \
-UV_LINK_MODE=copy
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
 
 # Set the working directory in the container
 WORKDIR /app
 
 FROM base AS builder-base
 RUN apk add --no-cache git
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-COPY uv.lock pyproject.toml /app
+COPY uv.lock pyproject.toml /app/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-dev
@@ -27,6 +28,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM base AS production
 RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache texlive texlive-luatex texlive-dvi ghostscript
+RUN apk add --no-cache texmf-dist-fontsrecommended texmf-dist-latexextra
 COPY --from=builder-base /app /app
 
 # Specify the command to run your project

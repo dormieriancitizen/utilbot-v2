@@ -423,6 +423,41 @@ class SearchCommands(commands.Cog):
         counts = self.sort_dict(counts)
         await self._respond(m, response)
 
+    @count.command(name="gex")
+    async def emoji_dex_count(self, ctx: commands.Context):
+        if not ctx.guild:
+            return
+
+        m = await ctx.reply("Loading...")
+
+        queries = {emoji: f"<:{emoji.name}:{emoji.id}>" for emoji in ctx.guild.emojis}
+
+        counts = {}
+        individualdex = self.bot.get_user(1342265524075364545)
+        for emoji, query in queries.items():
+            search: list[Message] = [
+                m
+                async for m in ctx.guild.search(
+                    content=query, authors=[individualdex], limit=1
+                )
+            ]
+
+            if search:
+                counts[emoji] = search[0].total_results
+            else:
+                counts[emoji] = 0
+
+        response = "# Emojis \n"
+        response += "\n".join(
+            [
+                f" - <:{emoji.name}:{emoji.id}>: `{counts[emoji]}` messages"
+                for emoji in counts
+            ]
+        )
+
+        counts = self.sort_dict(counts)
+        await self._respond(m, response)
+
     @count.command(name="emojis")
     async def emoji_count(self, ctx: commands.Context):
         if not ctx.guild:
@@ -512,6 +547,10 @@ class SearchCommands(commands.Cog):
             if member[1] is None:
                 continue
             if str(member[1].id) in total_counts:
+                if total_counts[str(member[1].id)] == 0:
+                    continue
+                if count == 0:
+                    continue
                 rates[(member[0], member[1])] = count / total_counts[str(member[1].id)]
 
         rates = self.sort_dict(rates)
