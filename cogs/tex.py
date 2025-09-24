@@ -64,25 +64,10 @@ class TexCommands(commands.Cog):
             img_buffer.seek(0)
             return img_buffer
 
-        full_tex = (
-            r"""
-\documentclass[preview,border=5pt]{standalone}
-\usepackage{amsmath}
-\begin{document}
-$
-\begin{aligned}
-"""
-            + tex
-            + r"""
-\end{aligned}
-$
-\end{document}
-"""
-        )
-        print(f"Trying to render the following tex: {full_tex}")
+        print(f"Trying to render the following tex: {tex}")
 
         tex_file = output_filename.with_suffix(".tex")
-        tex_file.write_text(full_tex, encoding="utf-8")
+        tex_file.write_text(tex, encoding="utf-8")
 
         try:
             process = await asyncio.create_subprocess_exec(
@@ -118,7 +103,54 @@ $
     @commands.command()
     async def tex(self, ctx: commands.Context, *, body: str):
         tex = self.cleanup_code(body)
-        file = await self.latex_to_buf(tex)
+
+        full_tex = (
+            r"""
+\documentclass[preview,border=5pt]{standalone}
+\usepackage{amsmath}
+\begin{document}
+$
+\begin{aligned}
+"""
+            + tex
+            + r"""
+\end{aligned}
+$
+\end{document}
+"""
+        )
+
+        file = await self.latex_to_buf(full_tex)
+        if isinstance(file, str):
+            await ctx.reply("LaTeX failed to render")
+            print(file)
+            return
+        await ctx.send(file=discord.File(fp=file, filename="tex.png"))
+
+    @commands.command()
+    async def plot(self, ctx: commands.Context, *, body: str):
+        tex = self.cleanup_code(body)
+
+        full_tex = (
+            r"""
+\documentclass[preview,border=5pt]{standalone}
+\usepackage{amsmath}
+\usepackage{pgfplots}
+\begin{document}
+\begin{tikzpicture}
+    \begin{axis}
+        \addplot[color=red]{
+"""
+            + tex
+            + r"""
+};
+    \end{axis}
+\end{tikzpicture}
+\end{document}
+"""
+        )
+
+        file = await self.latex_to_buf(full_tex)
         if isinstance(file, str):
             await ctx.reply("LaTeX failed to render")
             print(file)
