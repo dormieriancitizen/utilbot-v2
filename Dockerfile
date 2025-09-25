@@ -27,9 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked  --no-dev
 
 FROM base AS production
-RUN apk add --no-cache ffmpeg
-RUN apk add --no-cache texlive texlive-luatex texlive-dvi ghostscript
-RUN apk add --no-cache texmf-dist-fontsrecommended texmf-dist-latexextra
+RUN apk add --no-cache ffmpeg texlive texlive-luatex texlive-dvi ghostscript texmf-dist-fontsrecommended texmf-dist-latexextra
 COPY --from=builder-base /app /app
 
 # Specify the command to run your project
