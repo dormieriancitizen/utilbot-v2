@@ -16,7 +16,7 @@ class TexCommands(commands.Cog):
         self._last_member = None
 
     @staticmethod
-    def cleanup_code(content):
+    def cleanup_code(content: str):
         """Automatically removes code blocks from the code."""
         if content.startswith("```") and content.endswith("```"):
             return START_CODE_BLOCK_RE.sub("", content)[:-3]
