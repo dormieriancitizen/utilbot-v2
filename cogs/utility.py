@@ -54,6 +54,17 @@ class UtilityCommands(commands.Cog):
         version_file = Path("./version.txt")
         await ctx.reply(f"Version: {version_file.read_text()}")
 
+    @commands.command()
+    async def server_overlap(self, ctx, guild1: discord.Guild, guild2: discord.Guild):
+        overlap = list(set(guild1.members) & set(guild2.members))
+        overnames = []
+        for item in overlap:
+            overnames.append(item.name)
+        await ctx.reply(
+            f"### Overlap between {guild1.name} and {guild2.name}\n- "
+            + "\n- ".join(overnames)
+        )
+
 
 async def setup(bot):
     await bot.add_cog(UtilityCommands(bot))
