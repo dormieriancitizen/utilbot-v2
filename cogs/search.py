@@ -258,7 +258,9 @@ class SearchCommands(commands.Cog):
         counts, total = await self._get_counts(
             guild=ctx.message.guild,
             search_string=search_string,
-            entities=(await ctx.guild.fetch_members()),
+            # TODO: replace this once fetch_members gets fixed
+            # entities=(await ctx.guild.fetch_members()),
+            entities=ctx.guild.members,
             message_transformer=lambda message: message.author,
             name_transformer=lambda author: author.name,
             search_arg="authors",
@@ -535,7 +537,9 @@ class SearchCommands(commands.Cog):
         counts, total = await self._get_counts(
             guild=ctx.message.guild,
             search_string=search_string,
-            entities=(await ctx.guild.fetch_members()),
+            # TODO: replace this once fetch_members gets fixed
+            # entities=(await ctx.guild.fetch_members()),
+            entities=ctx.guild.members,
             message_transformer=lambda message: message.author,
             name_transformer=lambda author: author.name,
             search_arg="authors",
@@ -573,7 +577,9 @@ class SearchCommands(commands.Cog):
         counts, total = await self._get_counts(
             guild=ctx.message.guild,
             search_string="",
-            entities=(await ctx.guild.fetch_members()),
+            # TODO: replace this once fetch_members gets fixed
+            # entities=(await ctx.guild.fetch_members()),
+            entities=ctx.guild.members,
             message_transformer=None,
             name_transformer=lambda author: author.name,
             search_arg="mentions",
@@ -598,7 +604,9 @@ class SearchCommands(commands.Cog):
         counts, total = await self._get_counts(
             guild=ctx.message.guild,
             search_string=search_string,
-            entities=ctx.guild.text_channels,
+            # TODO: replace this once fetch_members gets fixed
+            # entities=(await ctx.guild.fetch_members()),
+            entities=ctx.guild.members,
             message_transformer=lambda message: message.channel,
             name_transformer=lambda channel: (
                 channel.name
