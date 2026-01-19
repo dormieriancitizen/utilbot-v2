@@ -6,14 +6,11 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "colorama>=0.4.6",
-    "discord-py-self",
+    "discord-py-self==2.1.0",
     "pdf2png>=1.0.0",
     "python-dotenv==1.0.1",
     "regex==2024.11.6",
 ]
-
-[tool.uv.sources]
-discord-py-self = { git = "https://github.com/dolfies/discord.py-self", rev = "600fd36dbf9175477a19cea8d394baf9fe7ef291" }
 
 [dependency-groups]
 dev = [
